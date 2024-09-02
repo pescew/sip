@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -96,7 +97,11 @@ func GenerateLineScanner(terminator rune) func([]byte, bool) (int, []byte, error
 
 func GenerateSIPValidatorFunc(badChars string) func(validator.FieldLevel) bool {
 	return func(fl validator.FieldLevel) bool {
-		return !strings.ContainsAny(fl.Field().String(), badChars)
+		fieldString := fl.Field().String()
+		if utf8.RuneCountInString(fieldString) > 255 {
+			return false
+		}
+		return !strings.ContainsAny(fieldString, badChars)
 	}
 }
 
@@ -150,4 +155,11 @@ func ExtractMultiFields(line string, delimiter rune, fields map[string][]string)
 	}
 
 	return fields
+}
+
+func IncrementSeqNum(seqNum int) int {
+	if seqNum == 9 || seqNum < 0 {
+		return 0
+	}
+	return seqNum + 1
 }

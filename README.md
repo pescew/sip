@@ -18,7 +18,18 @@ import (
 )
 
 func main() {
-	srv, err := server.NewServer(server.DefaultServerConfig())
+	srv, err := server.NewServer(server.ServerConfig{
+		Host:                "0.0.0.0",
+		Port:                9000,
+		DebugMode:           false,
+		LibraryID:           "lib",
+		InstitutionID:       "inst",
+		TerminalUsername:    "sc-user",
+		TerminalPassword:    "sc-pass",
+		TerminatorCharacter: '\r',
+		DelimiterCharacter:  '|',
+		ConnectionTimeout:   5,
+	})
 	if err != nil {
 		panic(err)
 	}

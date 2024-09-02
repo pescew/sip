@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
@@ -15,57 +16,57 @@ var (
 )
 
 type Request interface {
-	Marshal(seqNum int, delimiter, terminator rune) string
-	Unmarshal(line string, delimiter, terminator rune) (seqNum int, err error)
+	Marshal(delimiter, terminator rune, errorDetection bool) string
+	Unmarshal(line string, delimiter, terminator rune) error
 	Validate() error
 }
 
-func Unmarshal(line string, delimiter, terminator rune) (req Request, msgID string, seqNum int, err error) {
+func Unmarshal(line string, delimiter, terminator rune) (req Request, msgID string, err error) {
 	msgID = line[0:2]
 
 	switch msgID {
-	case MsgIDBlockPatron:
+	case types.ReqBlockPatron.ID():
 		req = &BlockPatron{}
-	case MsgIDCheckin:
+	case types.ReqCheckin.ID():
 		req = &Checkin{}
-	case MsgIDCheckout:
+	case types.ReqCheckout.ID():
 		req = &Checkout{}
-	case MsgIDHold:
+	case types.ReqHold.ID():
 		req = &Hold{}
-	case MsgIDItemInfo:
+	case types.ReqItemInfo.ID():
 		req = &ItemInfo{}
-	case MsgIDItemStatusUpdate:
+	case types.ReqItemStatusUpdate.ID():
 		req = &ItemStatusUpdate{}
-	case MsgIDPatronStatus:
+	case types.ReqPatronStatus.ID():
 		req = &PatronStatus{}
-	case MsgIDPatronEnable:
+	case types.ReqPatronEnable.ID():
 		req = &PatronEnable{}
-	case MsgIDRenew:
+	case types.ReqRenew.ID():
 		req = &Renew{}
-	case MsgIDEndPatronSession:
+	case types.ReqEndPatronSession.ID():
 		req = &EndPatronSession{}
-	case MsgIDFeePaid:
+	case types.ReqFeePaid.ID():
 		req = &FeePaid{}
-	case MsgIDPatronInfo:
+	case types.ReqPatronInfo.ID():
 		req = &PatronInfo{}
-	case MsgIDRenewAll:
+	case types.ReqRenewAll.ID():
 		req = &RenewAll{}
-	case MsgIDSCLogin:
+	case types.ReqSCLogin.ID():
 		req = &SCLogin{}
-	case MsgIDACSResend:
+	case types.ReqACSResend.ID():
 		req = &ACSResend{}
-	case MsgIDSCStatus:
+	case types.ReqSCStatus.ID():
 		req = &SCStatus{}
 	default:
-		return nil, "", 0, ErrUnknownRequest
+		return nil, msgID, ErrUnknownRequest
 	}
 
-	seqNum, err = req.Unmarshal(line, delimiter, terminator)
+	err = req.Unmarshal(line, delimiter, terminator)
 	if err != nil {
-		return nil, "", 0, err
+		return nil, msgID, err
 	}
 
-	return req, msgID, seqNum, nil
+	return req, msgID, nil
 }
 
 func InitValidator(excludeChars ...rune) {

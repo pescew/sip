@@ -7,12 +7,11 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
-const MsgIDItemInfo = "17"
-
-var ErrInvalidRequest17 = fmt.Errorf("Invalid SIP %s request", MsgIDItemInfo)
+var ErrInvalidRequest17 = fmt.Errorf("Invalid SIP %s request", types.ReqItemInfo.String())
 
 // This message may be used to request item information. The ACS should respond with the Item Information Response message.
 type ItemInfo struct {
@@ -23,11 +22,13 @@ type ItemInfo struct {
 
 	// Optional:
 	TerminalPassword string `validate:"sip"`
+
+	SeqNum int `validate:"min=0,max=9"`
 }
 
-func (ii *ItemInfo) Marshal(seqNum int, delimiter, terminator rune) string {
+func (ii *ItemInfo) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
-	msg.WriteString(MsgIDItemInfo)
+	msg.WriteString(types.ReqItemInfo.ID())
 
 	msg.WriteString(ii.TransactionDate.Format(utils.SIPDateFormat))
 
@@ -38,38 +39,40 @@ func (ii *ItemInfo) Marshal(seqNum int, delimiter, terminator rune) string {
 		fmt.Fprintf(&msg, "AC%s%c", ii.TerminalPassword, delimiter)
 	}
 
-	if seqNum < 0 {
-		seqNum = 0
+	if errorDetection {
+		fmt.Fprintf(&msg, "AY%dAZ", ii.SeqNum)
+		msg.WriteString(utils.ComputeChecksum(msg.String()))
 	}
-
-	return fmt.Sprintf("%s%c", utils.AppendChecksum(fmt.Sprintf("%sAY%dAZ", msg.String(), seqNum)), terminator)
+	msg.WriteRune(terminator)
+	return msg.String()
 }
 
-func (ii *ItemInfo) Unmarshal(line string, delimiter, terminator rune) (seqNum int, err error) {
+func (ii *ItemInfo) Unmarshal(line string, delimiter, terminator rune) error {
+	var err error
 	runes := []rune(line)
 
 	if len(runes) < 29 {
-		return 0, ErrInvalidRequest17
+		return ErrInvalidRequest17
 	}
 
-	if string(runes[0:2]) != MsgIDItemInfo {
-		return 0, ErrInvalidRequest17
+	if string(runes[0:2]) != types.ReqItemInfo.ID() {
+		return ErrInvalidRequest17
 	}
 
 	codes := utils.ExtractFields(string(runes[20:]), delimiter, map[string]string{"AY": "", "AO": "", "AB": "", "AC": ""})
 	seqNumString := codes["AY"]
 	if seqNumString == "" {
-		seqNum = 0
+		ii.SeqNum = 0
 	} else {
-		seqNum, err = strconv.Atoi(seqNumString)
+		ii.SeqNum, err = strconv.Atoi(seqNumString)
 		if err != nil {
-			seqNum = 0
+			ii.SeqNum = 0
 		}
 	}
 
 	ii.TransactionDate, err = time.Parse(utils.SIPDateFormat, string(runes[2:20]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	ii.InstitutionID = codes["AO"]
@@ -78,16 +81,16 @@ func (ii *ItemInfo) Unmarshal(line string, delimiter, terminator rune) (seqNum i
 
 	ii.Validate()
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return seqNum, nil
+	return nil
 }
 
 func (ii *ItemInfo) Validate() error {
 	err := Validate.Struct(ii)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s request did not pass validation: %v", MsgIDItemInfo, err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.ReqItemInfo.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

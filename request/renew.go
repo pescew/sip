@@ -8,12 +8,11 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
-const MsgIDRenew = "29"
-
-var ErrInvalidRequest29 = fmt.Errorf("Invalid SIP %s request", MsgIDRenew)
+var ErrInvalidRequest29 = fmt.Errorf("Invalid SIP %s request", types.ReqRenew.String())
 
 // This message is used to renew an item. The ACS should respond with a Renew Response message. Either or both of the “item identifier” and “title identifier” fields must be present for the message to be useful.
 type Renew struct {
@@ -32,11 +31,13 @@ type Renew struct {
 	TerminalPassword string `validate:"sip"`
 	ItemProperties   string `validate:"sip"`
 	FeeAcknowledged  bool
+
+	SeqNum int `validate:"min=0,max=9"`
 }
 
-func (rn *Renew) Marshal(seqNum int, delimiter, terminator rune) string {
+func (rn *Renew) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
-	msg.WriteString(MsgIDRenew)
+	msg.WriteString(types.ReqRenew.ID())
 
 	msg.WriteString(utils.YorN(rn.ThirdPartyAllowed))
 	msg.WriteString(utils.YorN(rn.NoBlock))
@@ -71,32 +72,34 @@ func (rn *Renew) Marshal(seqNum int, delimiter, terminator rune) string {
 		fmt.Fprintf(&msg, "BO%s%c", utils.YorN(rn.FeeAcknowledged), delimiter)
 	}
 
-	if seqNum < 0 {
-		seqNum = 0
+	if errorDetection {
+		fmt.Fprintf(&msg, "AY%dAZ", rn.SeqNum)
+		msg.WriteString(utils.ComputeChecksum(msg.String()))
 	}
-
-	return fmt.Sprintf("%s%c", utils.AppendChecksum(fmt.Sprintf("%sAY%dAZ", msg.String(), seqNum)), terminator)
+	msg.WriteRune(terminator)
+	return msg.String()
 }
 
-func (rn *Renew) Unmarshal(line string, delimiter, terminator rune) (seqNum int, err error) {
+func (rn *Renew) Unmarshal(line string, delimiter, terminator rune) error {
+	var err error
 	runes := []rune(line)
 
 	if len(runes) < 46 {
-		return 0, ErrInvalidRequest29
+		return ErrInvalidRequest29
 	}
 
-	if string(runes[0:2]) != MsgIDRenew {
-		return 0, ErrInvalidRequest29
+	if string(runes[0:2]) != types.ReqRenew.ID() {
+		return ErrInvalidRequest29
 	}
 
 	codes := utils.ExtractFields(string(runes[40:]), delimiter, map[string]string{"AY": "", "AO": "", "AA": "", "AD": "", "AB": "", "AJ": "", "AC": "", "CH": "", "BO": ""})
 	seqNumString := codes["AY"]
 	if seqNumString == "" {
-		seqNum = 0
+		rn.SeqNum = 0
 	} else {
-		seqNum, err = strconv.Atoi(seqNumString)
+		rn.SeqNum, err = strconv.Atoi(seqNumString)
 		if err != nil {
-			seqNum = 0
+			rn.SeqNum = 0
 		}
 	}
 
@@ -105,12 +108,12 @@ func (rn *Renew) Unmarshal(line string, delimiter, terminator rune) (seqNum int,
 
 	rn.TransactionDate, err = time.Parse(utils.SIPDateFormat, string(runes[4:22]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	rn.NBDueDate, err = time.Parse(utils.SIPDateFormat, string(runes[22:40]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	rn.InstitutionID = codes["AO"]
@@ -127,16 +130,16 @@ func (rn *Renew) Unmarshal(line string, delimiter, terminator rune) (seqNum int,
 
 	rn.Validate()
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return seqNum, nil
+	return nil
 }
 
 func (rn *Renew) Validate() error {
 	err := Validate.Struct(rn)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s request did not pass validation: %v", MsgIDRenew, err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.ReqRenew.String(), err.(validator.ValidationErrors))
 	}
 
 	if rn.ItemID == "" && rn.TitleID == "" {

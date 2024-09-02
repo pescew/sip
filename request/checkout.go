@@ -8,12 +8,11 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
-const MsgIDCheckout = "11"
-
-var ErrInvalidRequest11 = fmt.Errorf("Invalid SIP %s request", MsgIDCheckout)
+var ErrInvalidRequest11 = fmt.Errorf("Invalid SIP %s request", types.ReqCheckout.String())
 
 // This message is used by the SC to request to check out an item, and also to cancel a Checkin request that did not successfully complete. The ACS must respond to this command with a Checkout Response message.
 type Checkout struct {
@@ -32,11 +31,13 @@ type Checkout struct {
 	PatronPassword  string `validate:"sip"`
 	FeeAcknowledged bool
 	Cancel          bool
+
+	SeqNum int `validate:"min=0,max=9"`
 }
 
-func (co *Checkout) Marshal(seqNum int, delimiter, terminator rune) string {
+func (co *Checkout) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
-	msg.WriteString(MsgIDCheckout)
+	msg.WriteString(types.ReqCheckout.ID())
 
 	msg.WriteString(utils.YorN(co.SCRenewalPolicy))
 	msg.WriteString(utils.YorN(co.NoBlock))
@@ -65,32 +66,34 @@ func (co *Checkout) Marshal(seqNum int, delimiter, terminator rune) string {
 		fmt.Fprintf(&msg, "BI%s%c", utils.YorN(co.Cancel), delimiter)
 	}
 
-	if seqNum < 0 {
-		seqNum = 0
+	if errorDetection {
+		fmt.Fprintf(&msg, "AY%dAZ", co.SeqNum)
+		msg.WriteString(utils.ComputeChecksum(msg.String()))
 	}
-
-	return fmt.Sprintf("%s%c", utils.AppendChecksum(fmt.Sprintf("%sAY%dAZ", msg.String(), seqNum)), terminator)
+	msg.WriteRune(terminator)
+	return msg.String()
 }
 
-func (co *Checkout) Unmarshal(line string, delimiter, terminator rune) (seqNum int, err error) {
+func (co *Checkout) Unmarshal(line string, delimiter, terminator rune) error {
+	var err error
 	runes := []rune(line)
 
 	if len(runes) < 52 {
-		return 0, ErrInvalidRequest11
+		return ErrInvalidRequest11
 	}
 
-	if string(runes[0:2]) != MsgIDCheckout {
-		return 0, ErrInvalidRequest11
+	if string(runes[0:2]) != types.ReqCheckout.ID() {
+		return ErrInvalidRequest11
 	}
 
 	codes := utils.ExtractFields(string(runes[40:]), delimiter, map[string]string{"AY": "", "AO": "", "AA": "", "AB": "", "AC": "", "CH": "", "AD": "", "BO": "", "BI": ""})
 	seqNumString := codes["AY"]
 	if seqNumString == "" {
-		seqNum = 0
+		co.SeqNum = 0
 	} else {
-		seqNum, err = strconv.Atoi(seqNumString)
+		co.SeqNum, err = strconv.Atoi(seqNumString)
 		if err != nil {
-			seqNum = 0
+			co.SeqNum = 0
 		}
 	}
 
@@ -99,12 +102,12 @@ func (co *Checkout) Unmarshal(line string, delimiter, terminator rune) (seqNum i
 
 	co.TransactionDate, err = time.Parse(utils.SIPDateFormat, string(runes[4:22]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	co.NBDueDate, err = time.Parse(utils.SIPDateFormat, string(runes[22:40]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	co.InstitutionID = codes["AO"]
@@ -125,16 +128,16 @@ func (co *Checkout) Unmarshal(line string, delimiter, terminator rune) (seqNum i
 
 	co.Validate()
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return seqNum, nil
+	return nil
 }
 
 func (co *Checkout) Validate() error {
 	err := Validate.Struct(co)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s request did not pass validation: %v", MsgIDCheckout, err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.ReqCheckout.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

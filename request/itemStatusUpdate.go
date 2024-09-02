@@ -7,12 +7,11 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
-const MsgIDItemStatusUpdate = "19"
-
-var ErrInvalidRequest19 = fmt.Errorf("Invalid SIP %s request", MsgIDItemStatusUpdate)
+var ErrInvalidRequest19 = fmt.Errorf("Invalid SIP %s request", types.ReqItemStatusUpdate.String())
 
 // This message can be used to send item information to the ACS, without having to do a Checkout or Checkin operation. The item properties could be stored on the ACS’s database. The ACS should respond with an Item Status Update Response message.
 type ItemStatusUpdate struct {
@@ -26,11 +25,13 @@ type ItemStatusUpdate struct {
 
 	// Required:
 	ItemProperties string `validate:"required,sip"`
+
+	SeqNum int `validate:"min=0,max=9"`
 }
 
-func (isu *ItemStatusUpdate) Marshal(seqNum int, delimiter, terminator rune) string {
+func (isu *ItemStatusUpdate) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
-	msg.WriteString(MsgIDItemStatusUpdate)
+	msg.WriteString(types.ReqItemStatusUpdate.ID())
 
 	msg.WriteString(isu.TransactionDate.Format(utils.SIPDateFormat))
 
@@ -43,38 +44,40 @@ func (isu *ItemStatusUpdate) Marshal(seqNum int, delimiter, terminator rune) str
 
 	fmt.Fprintf(&msg, "CH%s%c", isu.ItemProperties, delimiter)
 
-	if seqNum < 0 {
-		seqNum = 0
+	if errorDetection {
+		fmt.Fprintf(&msg, "AY%dAZ", isu.SeqNum)
+		msg.WriteString(utils.ComputeChecksum(msg.String()))
 	}
-
-	return fmt.Sprintf("%s%c", utils.AppendChecksum(fmt.Sprintf("%sAY%dAZ", msg.String(), seqNum)), terminator)
+	msg.WriteRune(terminator)
+	return msg.String()
 }
 
-func (isu *ItemStatusUpdate) Unmarshal(line string, delimiter, terminator rune) (seqNum int, err error) {
+func (isu *ItemStatusUpdate) Unmarshal(line string, delimiter, terminator rune) error {
+	var err error
 	runes := []rune(line)
 
 	if len(runes) < 29 {
-		return 0, ErrInvalidRequest19
+		return ErrInvalidRequest19
 	}
 
-	if string(runes[0:2]) != MsgIDItemStatusUpdate {
-		return 0, ErrInvalidRequest19
+	if string(runes[0:2]) != types.ReqItemStatusUpdate.ID() {
+		return ErrInvalidRequest19
 	}
 
 	codes := utils.ExtractFields(string(runes[20:]), delimiter, map[string]string{"AY": "", "AO": "", "AB": "", "AC": "", "CH": ""})
 	seqNumString := codes["AY"]
 	if seqNumString == "" {
-		seqNum = 0
+		isu.SeqNum = 0
 	} else {
-		seqNum, err = strconv.Atoi(seqNumString)
+		isu.SeqNum, err = strconv.Atoi(seqNumString)
 		if err != nil {
-			seqNum = 0
+			isu.SeqNum = 0
 		}
 	}
 
 	isu.TransactionDate, err = time.Parse(utils.SIPDateFormat, string(runes[2:20]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	isu.InstitutionID = codes["AO"]
@@ -84,16 +87,16 @@ func (isu *ItemStatusUpdate) Unmarshal(line string, delimiter, terminator rune) 
 
 	isu.Validate()
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return seqNum, nil
+	return nil
 }
 
 func (isu *ItemStatusUpdate) Validate() error {
 	err := Validate.Struct(isu)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s request did not pass validation: %v", MsgIDItemStatusUpdate, err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.ReqItemStatusUpdate.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

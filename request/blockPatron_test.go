@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
@@ -25,22 +26,24 @@ func TestBlockPatron(t *testing.T) {
 		BlockedCardMsg:   "You are blocked!",
 		PatronID:         "johndoe",
 		TerminalPassword: "password",
+
+		SeqNum: 3,
 	}
 
-	sipString := req.Marshal(3, delimiter, terminator)
+	sipString := req.Marshal(delimiter, terminator, true)
 
-	parsed, msgID, seqNum, err := Unmarshal(sipString, delimiter, terminator)
+	parsed, msgID, err := Unmarshal(sipString, delimiter, terminator)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	reqParsed = parsed.(*BlockPatron)
 
-	if seqNum != 3 {
+	if reqParsed.SeqNum != 3 {
 		t.Fatalf("Sequence Number mismatch")
 	}
 
-	if msgID != MsgIDBlockPatron {
+	if msgID != types.ReqBlockPatron.ID() {
 		t.Fatalf("Message ID mismatch")
 	}
 

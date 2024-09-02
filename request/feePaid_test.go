@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
@@ -32,22 +33,24 @@ func TestFeePaid(t *testing.T) {
 		PatronPassword:   "john'sPassword",
 		FeeID:            "523w44fghdf",
 		TransactionID:    "sdgf345ydfhg6",
+
+		SeqNum: 3,
 	}
 
-	sipString := req.Marshal(3, delimiter, terminator)
+	sipString := req.Marshal(delimiter, terminator, true)
 
-	parsed, msgID, seqNum, err := Unmarshal(sipString, delimiter, terminator)
+	parsed, msgID, err := Unmarshal(sipString, delimiter, terminator)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	reqParsed = parsed.(*FeePaid)
 
-	if seqNum != 3 {
+	if reqParsed.SeqNum != 3 {
 		t.Fatalf("Sequence Number mismatch")
 	}
 
-	if msgID != MsgIDFeePaid {
+	if msgID != types.ReqFeePaid.ID() {
 		t.Fatalf("Message ID mismatch")
 	}
 

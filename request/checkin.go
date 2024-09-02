@@ -8,12 +8,11 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
-const MsgIDCheckin = "09"
-
-var ErrInvalidRequest09 = fmt.Errorf("Invalid SIP %s request", MsgIDCheckin)
+var ErrInvalidRequest09 = fmt.Errorf("Invalid SIP %s request", types.ReqCheckin.String())
 
 // This message is used by the SC to request to check in an item, and also to cancel a Checkout request that did not successfully complete. The ACS must respond to this command with a Checkin Response message.
 type Checkin struct {
@@ -29,11 +28,13 @@ type Checkin struct {
 	// Optional:
 	ItemProperties string `validate:"sip"`
 	Cancel         bool
+
+	SeqNum int `validate:"min=0,max=9"`
 }
 
-func (ci *Checkin) Marshal(seqNum int, delimiter, terminator rune) string {
+func (ci *Checkin) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
-	msg.WriteString(MsgIDCheckin)
+	msg.WriteString(types.ReqCheckin.ID())
 
 	msg.WriteString(utils.YorN(ci.NoBlock))
 
@@ -54,32 +55,34 @@ func (ci *Checkin) Marshal(seqNum int, delimiter, terminator rune) string {
 		fmt.Fprintf(&msg, "BI%s%c", utils.YorN(ci.Cancel), delimiter)
 	}
 
-	if seqNum < 0 {
-		seqNum = 0
+	if errorDetection {
+		fmt.Fprintf(&msg, "AY%dAZ", ci.SeqNum)
+		msg.WriteString(utils.ComputeChecksum(msg.String()))
 	}
-
-	return fmt.Sprintf("%s%c", utils.AppendChecksum(fmt.Sprintf("%sAY%dAZ", msg.String(), seqNum)), terminator)
+	msg.WriteRune(terminator)
+	return msg.String()
 }
 
-func (ci *Checkin) Unmarshal(line string, delimiter, terminator rune) (seqNum int, err error) {
+func (ci *Checkin) Unmarshal(line string, delimiter, terminator rune) error {
+	var err error
 	runes := []rune(line)
 
 	if len(runes) < 51 {
-		return 0, ErrInvalidRequest09
+		return ErrInvalidRequest09
 	}
 
-	if string(runes[0:2]) != MsgIDCheckin {
-		return 0, ErrInvalidRequest09
+	if string(runes[0:2]) != types.ReqCheckin.ID() {
+		return ErrInvalidRequest09
 	}
 
 	codes := utils.ExtractFields(string(runes[39:]), delimiter, map[string]string{"AY": "", "AP": "", "AO": "", "AB": "", "AC": "", "CH": "", "BI": ""})
 	seqNumString := codes["AY"]
 	if seqNumString == "" {
-		seqNum = 0
+		ci.SeqNum = 0
 	} else {
-		seqNum, err = strconv.Atoi(seqNumString)
+		ci.SeqNum, err = strconv.Atoi(seqNumString)
 		if err != nil {
-			seqNum = 0
+			ci.SeqNum = 0
 		}
 	}
 
@@ -87,12 +90,12 @@ func (ci *Checkin) Unmarshal(line string, delimiter, terminator rune) (seqNum in
 
 	ci.TransactionDate, err = time.Parse(utils.SIPDateFormat, string(runes[3:21]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	ci.ReturnDate, err = time.Parse(utils.SIPDateFormat, string(runes[21:39]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	ci.CurrentLocation = codes["AP"]
@@ -108,16 +111,16 @@ func (ci *Checkin) Unmarshal(line string, delimiter, terminator rune) (seqNum in
 
 	err = ci.Validate()
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return seqNum, nil
+	return nil
 }
 
 func (ci *Checkin) Validate() error {
 	err := Validate.Struct(ci)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s request did not pass validation: %v", MsgIDCheckin, err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.ReqCheckin.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

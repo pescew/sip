@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
@@ -28,22 +29,24 @@ func TestItemStatusUpdate(t *testing.T) {
 
 		// Required:
 		ItemProperties: "test123",
+
+		SeqNum: 3,
 	}
 
-	sipString := req.Marshal(3, delimiter, terminator)
+	sipString := req.Marshal(delimiter, terminator, true)
 
-	parsed, msgID, seqNum, err := Unmarshal(sipString, delimiter, terminator)
+	parsed, msgID, err := Unmarshal(sipString, delimiter, terminator)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	reqParsed = parsed.(*ItemStatusUpdate)
 
-	if seqNum != 3 {
+	if reqParsed.SeqNum != 3 {
 		t.Fatalf("Sequence Number mismatch")
 	}
 
-	if msgID != MsgIDItemStatusUpdate {
+	if msgID != types.ReqItemStatusUpdate.ID() {
 		t.Fatalf("Message ID mismatch")
 	}
 

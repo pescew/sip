@@ -8,12 +8,11 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
-const MsgIDHold = "15"
-
-var ErrInvalidRequest15 = fmt.Errorf("Invalid SIP %s request", MsgIDHold)
+var ErrInvalidRequest15 = fmt.Errorf("Invalid SIP %s request", types.ReqHold.String())
 
 // This message is used to create, modify, or delete a hold. The ACS should respond with a Hold Response message. Either or both of the “item identifier” and “title identifier” fields must be present for the message to be useful.
 type Hold struct {
@@ -36,11 +35,13 @@ type Hold struct {
 	TitleID          string `validate:"sip"`
 	TerminalPassword string `validate:"sip"`
 	FeeAcknowledged  bool
+
+	SeqNum int `validate:"min=0,max=9"`
 }
 
-func (h *Hold) Marshal(seqNum int, delimiter, terminator rune) string {
+func (h *Hold) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
-	msg.WriteString(MsgIDHold)
+	msg.WriteString(types.ReqHold.ID())
 
 	msg.WriteString(h.HoldMode)
 
@@ -81,32 +82,34 @@ func (h *Hold) Marshal(seqNum int, delimiter, terminator rune) string {
 		fmt.Fprintf(&msg, "BO%s%c", utils.YorN(h.FeeAcknowledged), delimiter)
 	}
 
-	if seqNum < 0 {
-		seqNum = 0
+	if errorDetection {
+		fmt.Fprintf(&msg, "AY%dAZ", h.SeqNum)
+		msg.WriteString(utils.ComputeChecksum(msg.String()))
 	}
-
-	return fmt.Sprintf("%s%c", utils.AppendChecksum(fmt.Sprintf("%sAY%dAZ", msg.String(), seqNum)), terminator)
+	msg.WriteRune(terminator)
+	return msg.String()
 }
 
-func (h *Hold) Unmarshal(line string, delimiter, terminator rune) (seqNum int, err error) {
+func (h *Hold) Unmarshal(line string, delimiter, terminator rune) error {
+	var err error
 	runes := []rune(line)
 
 	if len(runes) < 27 {
-		return 0, ErrInvalidRequest15
+		return ErrInvalidRequest15
 	}
 
-	if string(runes[0:2]) != MsgIDHold {
-		return 0, ErrInvalidRequest15
+	if string(runes[0:2]) != types.ReqHold.ID() {
+		return ErrInvalidRequest15
 	}
 
 	codes := utils.ExtractFields(string(runes[21:]), delimiter, map[string]string{"AY": "", "BW": "", "BS": "", "BY": "", "AO": "", "AA": "", "AD": "", "AB": "", "AJ": "", "AC": "", "BO": ""})
 	seqNumString := codes["AY"]
 	if seqNumString == "" {
-		seqNum = 0
+		h.SeqNum = 0
 	} else {
-		seqNum, err = strconv.Atoi(seqNumString)
+		h.SeqNum, err = strconv.Atoi(seqNumString)
 		if err != nil {
-			seqNum = 0
+			h.SeqNum = 0
 		}
 	}
 
@@ -114,13 +117,13 @@ func (h *Hold) Unmarshal(line string, delimiter, terminator rune) (seqNum int, e
 
 	h.TransactionDate, err = time.Parse(utils.SIPDateFormat, string(runes[3:21]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	if codes["BW"] != "" {
 		h.ExpirationDate, err = time.Parse(utils.SIPDateFormat, codes["BW"])
 		if err != nil {
-			return 0, err
+			return err
 		}
 	}
 
@@ -128,7 +131,7 @@ func (h *Hold) Unmarshal(line string, delimiter, terminator rune) (seqNum int, e
 	if codes["BY"] != "" {
 		h.HoldType, err = strconv.Atoi(codes["BY"])
 		if err != nil {
-			return 0, err
+			return err
 		}
 	}
 
@@ -146,16 +149,16 @@ func (h *Hold) Unmarshal(line string, delimiter, terminator rune) (seqNum int, e
 
 	err = h.Validate()
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return seqNum, nil
+	return nil
 }
 
 func (h *Hold) Validate() error {
 	err := Validate.Struct(h)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s request did not pass validation: %v", MsgIDHold, err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.ReqHold.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

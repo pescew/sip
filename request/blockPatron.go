@@ -7,12 +7,11 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
-const MsgIDBlockPatron = "01"
-
-var ErrInvalidRequest01 = fmt.Errorf("Invalid SIP %s request", MsgIDBlockPatron)
+var ErrInvalidRequest01 = fmt.Errorf("Invalid SIP %s", types.ReqBlockPatron.String())
 
 // This message requests that the patron card be blocked by the ACS. This is, for example, sent when the patron is detected tampering with the SC or when a patron forgets to take their card. The ACS should invalidate the patron’s card and respond with a Patron Status Response message. The ACS could also notify the library staff that the card has been blocked.
 type BlockPatron struct {
@@ -23,11 +22,13 @@ type BlockPatron struct {
 	BlockedCardMsg   string    `validate:"sip"`
 	PatronID         string    `validate:"required,sip"`
 	TerminalPassword string    `validate:"sip"`
+
+	SeqNum int `validate:"min=0,max=9"`
 }
 
-func (bp *BlockPatron) Marshal(seqNum int, delimiter, terminator rune) string {
+func (bp *BlockPatron) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
-	msg.WriteString(MsgIDBlockPatron)
+	msg.WriteString(types.ReqBlockPatron.ID())
 
 	msg.WriteString(utils.YorN(bp.CardRetained))
 
@@ -39,32 +40,34 @@ func (bp *BlockPatron) Marshal(seqNum int, delimiter, terminator rune) string {
 	fmt.Fprintf(&msg, "AA%s%c", bp.PatronID, delimiter)
 	fmt.Fprintf(&msg, "AC%s%c", bp.TerminalPassword, delimiter)
 
-	if seqNum < 0 {
-		seqNum = 0
+	if errorDetection {
+		fmt.Fprintf(&msg, "AY%dAZ", bp.SeqNum)
+		msg.WriteString(utils.ComputeChecksum(msg.String()))
 	}
-
-	return fmt.Sprintf("%s%c", utils.AppendChecksum(fmt.Sprintf("%sAY%dAZ", msg.String(), seqNum)), terminator)
+	msg.WriteRune(terminator)
+	return msg.String()
 }
 
-func (bp *BlockPatron) Unmarshal(line string, delimiter, terminator rune) (seqNum int, err error) {
+func (bp *BlockPatron) Unmarshal(line string, delimiter, terminator rune) error {
+	var err error
 	runes := []rune(line)
 
 	if len(runes) < 33 {
-		return 0, ErrInvalidRequest01
+		return ErrInvalidRequest01
 	}
 
-	if string(runes[0:2]) != MsgIDBlockPatron {
-		return 0, ErrInvalidRequest01
+	if string(runes[0:2]) != types.ReqBlockPatron.ID() {
+		return ErrInvalidRequest01
 	}
 
 	codes := utils.ExtractFields(string(runes[21:]), delimiter, map[string]string{"AY": "", "AO": "", "AL": "", "AA": "", "AC": ""})
 	seqNumString := codes["AY"]
 	if seqNumString == "" {
-		seqNum = 0
+		bp.SeqNum = 0
 	} else {
-		seqNum, err = strconv.Atoi(seqNumString)
+		bp.SeqNum, err = strconv.Atoi(seqNumString)
 		if err != nil {
-			seqNum = 0
+			bp.SeqNum = 0
 		}
 	}
 
@@ -72,7 +75,7 @@ func (bp *BlockPatron) Unmarshal(line string, delimiter, terminator rune) (seqNu
 
 	bp.TransactionDate, err = time.Parse(utils.SIPDateFormat, string(runes[3:21]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	bp.InstitutionID = codes["AO"]
@@ -82,16 +85,16 @@ func (bp *BlockPatron) Unmarshal(line string, delimiter, terminator rune) (seqNu
 
 	err = bp.Validate()
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return seqNum, nil
+	return nil
 }
 
 func (bp *BlockPatron) Validate() error {
 	err := Validate.Struct(bp)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s request did not pass validation: %v", MsgIDBlockPatron, err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.ReqBlockPatron.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

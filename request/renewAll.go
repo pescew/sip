@@ -8,12 +8,11 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
-const MsgIDRenewAll = "65"
-
-var ErrInvalidRequest65 = fmt.Errorf("Invalid SIP %s request", MsgIDRenewAll)
+var ErrInvalidRequest65 = fmt.Errorf("Invalid SIP %s request", types.ReqRenewAll.String())
 
 // This message is used to renew all items that the patron has checked out. The ACS should respond with a Renew All Response message.
 type RenewAll struct {
@@ -26,11 +25,13 @@ type RenewAll struct {
 	PatronPassword   string `validate:"sip"`
 	TerminalPassword string `validate:"sip"`
 	FeeAcknowledged  bool
+
+	SeqNum int `validate:"min=0,max=9"`
 }
 
-func (ra *RenewAll) Marshal(seqNum int, delimiter, terminator rune) string {
+func (ra *RenewAll) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
-	msg.WriteString(MsgIDRenewAll)
+	msg.WriteString(types.ReqRenewAll.ID())
 
 	msg.WriteString(ra.TransactionDate.Format(utils.SIPDateFormat))
 
@@ -49,38 +50,40 @@ func (ra *RenewAll) Marshal(seqNum int, delimiter, terminator rune) string {
 		fmt.Fprintf(&msg, "BO%s%c", utils.YorN(ra.FeeAcknowledged), delimiter)
 	}
 
-	if seqNum < 0 {
-		seqNum = 0
+	if errorDetection {
+		fmt.Fprintf(&msg, "AY%dAZ", ra.SeqNum)
+		msg.WriteString(utils.ComputeChecksum(msg.String()))
 	}
-
-	return fmt.Sprintf("%s%c", utils.AppendChecksum(fmt.Sprintf("%sAY%dAZ", msg.String(), seqNum)), terminator)
+	msg.WriteRune(terminator)
+	return msg.String()
 }
 
-func (ra *RenewAll) Unmarshal(line string, delimiter, terminator rune) (seqNum int, err error) {
+func (ra *RenewAll) Unmarshal(line string, delimiter, terminator rune) error {
+	var err error
 	runes := []rune(line)
 
 	if len(runes) < 26 {
-		return 0, ErrInvalidRequest65
+		return ErrInvalidRequest65
 	}
 
-	if string(runes[0:2]) != MsgIDRenewAll {
-		return 0, ErrInvalidRequest65
+	if string(runes[0:2]) != types.ReqRenewAll.ID() {
+		return ErrInvalidRequest65
 	}
 
 	codes := utils.ExtractFields(string(runes[20:]), delimiter, map[string]string{"AY": "", "AO": "", "AA": "", "AD": "", "AC": "", "BO": ""})
 	seqNumString := codes["AY"]
 	if seqNumString == "" {
-		seqNum = 0
+		ra.SeqNum = 0
 	} else {
-		seqNum, err = strconv.Atoi(seqNumString)
+		ra.SeqNum, err = strconv.Atoi(seqNumString)
 		if err != nil {
-			seqNum = 0
+			ra.SeqNum = 0
 		}
 	}
 
 	ra.TransactionDate, err = time.Parse(utils.SIPDateFormat, string(runes[2:20]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	ra.InstitutionID = codes["AO"]
@@ -94,16 +97,16 @@ func (ra *RenewAll) Unmarshal(line string, delimiter, terminator rune) (seqNum i
 
 	err = ra.Validate()
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return seqNum, nil
+	return nil
 }
 
 func (ra *RenewAll) Validate() error {
 	err := Validate.Struct(ra)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s request did not pass validation: %v", MsgIDRenewAll, err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.ReqRenewAll.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

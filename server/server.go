@@ -3,14 +3,13 @@ package server
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"net"
 	"net/netip"
 	"strings"
 	"sync"
 	"time"
 	"unicode/utf8"
-
-	"log"
 
 	"github.com/pescew/sip/request"
 	"github.com/pescew/sip/response"

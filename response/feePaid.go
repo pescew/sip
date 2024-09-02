@@ -7,12 +7,11 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
-const MsgIDFeePaid = "38"
-
-var ErrInvalidResponse38 = fmt.Errorf("Invalid SIP %s response", MsgIDFeePaid)
+var ErrInvalidResponse38 = fmt.Errorf("Invalid SIP %s", types.RespFeePaid.String())
 
 // The ACS must send this message in response to the Fee Paid message.
 type FeePaid struct {
@@ -26,12 +25,14 @@ type FeePaid struct {
 	TransactionID string `validate:"sip"`
 	ScreenMessage string `validate:"sip"`
 	PrintLine     string `validate:"sip"`
+
+	SeqNum int `validate:"min=0,max=9"`
 }
 
-func (fp *FeePaid) Marshal(seqNum int, delimiter, terminator rune) string {
+func (fp *FeePaid) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
 
-	msg.WriteString(MsgIDFeePaid)
+	msg.WriteString(types.RespFeePaid.ID())
 	msg.WriteString(utils.YorN(fp.PaymentAccepted))
 	msg.WriteString(fp.TransactionDate.Format(utils.SIPDateFormat))
 	fmt.Fprintf(&msg, "AO%s%c", fp.InstitutionID, delimiter)
@@ -49,32 +50,34 @@ func (fp *FeePaid) Marshal(seqNum int, delimiter, terminator rune) string {
 		fmt.Fprintf(&msg, "AG%s%c", fp.PrintLine, delimiter)
 	}
 
-	if seqNum < 0 {
-		seqNum = 0
+	if errorDetection {
+		fmt.Fprintf(&msg, "AY%dAZ", fp.SeqNum)
+		msg.WriteString(utils.ComputeChecksum(msg.String()))
 	}
-
-	return fmt.Sprintf("%s%c", utils.AppendChecksum(fmt.Sprintf("%sAY%dAZ", msg.String(), seqNum)), terminator)
+	msg.WriteRune(terminator)
+	return msg.String()
 }
 
-func (fp *FeePaid) Unmarshal(line string, delimiter, terminator rune) (seqNum int, err error) {
+func (fp *FeePaid) Unmarshal(line string, delimiter, terminator rune) error {
+	var err error
 	runes := []rune(line)
 
 	if len(runes) < 27 {
-		return 0, ErrInvalidResponse38
+		return ErrInvalidResponse38
 	}
 
-	if string(runes[0:2]) != MsgIDFeePaid {
-		return 0, ErrInvalidResponse38
+	if string(runes[0:2]) != types.RespFeePaid.ID() {
+		return ErrInvalidResponse38
 	}
 
 	codes := utils.ExtractFields(string(runes[21:]), delimiter, map[string]string{"AY": "", "AO": "", "AA": "", "BK": "", "AF": "", "AG": ""})
 	seqNumString := codes["AY"]
 	if seqNumString == "" {
-		seqNum = 0
+		fp.SeqNum = 0
 	} else {
-		seqNum, err = strconv.Atoi(seqNumString)
+		fp.SeqNum, err = strconv.Atoi(seqNumString)
 		if err != nil {
-			seqNum = 0
+			fp.SeqNum = 0
 		}
 	}
 
@@ -82,7 +85,7 @@ func (fp *FeePaid) Unmarshal(line string, delimiter, terminator rune) (seqNum in
 
 	fp.TransactionDate, err = time.Parse(utils.SIPDateFormat, string(runes[3:21]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	fp.InstitutionID = codes["AO"]
@@ -94,16 +97,16 @@ func (fp *FeePaid) Unmarshal(line string, delimiter, terminator rune) (seqNum in
 
 	err = fp.Validate()
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return seqNum, nil
+	return nil
 }
 
 func (fp *FeePaid) Validate() error {
 	err := Validate.Struct(fp)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s response did not pass validation: %v", MsgIDFeePaid, err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.RespFeePaid.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

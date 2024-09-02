@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
@@ -18,16 +19,16 @@ func TestSCResend(t *testing.T) {
 	var respParsed *SCResend
 	resp := &SCResend{}
 
-	sipString := resp.Marshal(3, delimiter, terminator)
+	sipString := resp.Marshal(delimiter, terminator, true)
 
-	parsed, msgID, _, err := Unmarshal(sipString, delimiter, terminator)
+	parsed, msgID, err := Unmarshal(sipString, delimiter, terminator)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	respParsed = parsed.(*SCResend)
 
-	if msgID != MsgIDSCResend {
+	if msgID != types.RespSCResend.ID() {
 		t.Fatalf("Message ID mismatch")
 	}
 

@@ -8,12 +8,11 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
-const MsgIDCheckin = "10"
-
-var ErrInvalidResponse10 = fmt.Errorf("Invalid SIP %s response", MsgIDCheckin)
+var ErrInvalidResponse10 = fmt.Errorf("Invalid SIP %s", types.RespCheckin.String())
 
 // This message must be sent by the ACS in response to a SC Checkin message.
 type Checkin struct {
@@ -35,12 +34,14 @@ type Checkin struct {
 	ItemProperties string `validate:"sip"`
 	ScreenMessage  string `validate:"sip"`
 	PrintLine      string `validate:"sip"`
+
+	SeqNum int `validate:"min=0,max=9"`
 }
 
-func (ci *Checkin) Marshal(seqNum int, delimiter, terminator rune) string {
+func (ci *Checkin) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
 
-	msg.WriteString(MsgIDCheckin)
+	msg.WriteString(types.RespCheckin.ID())
 
 	msg.WriteString(utils.ZeroOrOne(ci.Ok))
 	msg.WriteString(utils.YorN(ci.Resensitize))
@@ -79,32 +80,34 @@ func (ci *Checkin) Marshal(seqNum int, delimiter, terminator rune) string {
 		fmt.Fprintf(&msg, "AG%s%c", ci.PrintLine, delimiter)
 	}
 
-	if seqNum < 0 {
-		seqNum = 0
+	if errorDetection {
+		fmt.Fprintf(&msg, "AY%dAZ", ci.SeqNum)
+		msg.WriteString(utils.ComputeChecksum(msg.String()))
 	}
-
-	return fmt.Sprintf("%s%c", utils.AppendChecksum(fmt.Sprintf("%sAY%dAZ", msg.String(), seqNum)), terminator)
+	msg.WriteRune(terminator)
+	return msg.String()
 }
 
-func (ci *Checkin) Unmarshal(line string, delimiter, terminator rune) (seqNum int, err error) {
+func (ci *Checkin) Unmarshal(line string, delimiter, terminator rune) error {
+	var err error
 	runes := []rune(line)
 
 	if len(runes) < 30 {
-		return 0, ErrInvalidResponse10
+		return ErrInvalidResponse10
 	}
 
-	if string(runes[0:2]) != MsgIDCheckin {
-		return 0, ErrInvalidResponse10
+	if string(runes[0:2]) != types.RespCheckin.ID() {
+		return ErrInvalidResponse10
 	}
 
 	codes := utils.ExtractFields(string(runes[24:]), delimiter, map[string]string{"AY": "", "AO": "", "AB": "", "AQ": "", "AJ": "", "CL": "", "AA": "", "CK": "", "CH": "", "AF": "", "AG": ""})
 	seqNumString := codes["AY"]
 	if seqNumString == "" {
-		seqNum = 0
+		ci.SeqNum = 0
 	} else {
-		seqNum, err = strconv.Atoi(seqNumString)
+		ci.SeqNum, err = strconv.Atoi(seqNumString)
 		if err != nil {
-			seqNum = 0
+			ci.SeqNum = 0
 		}
 	}
 
@@ -115,7 +118,7 @@ func (ci *Checkin) Unmarshal(line string, delimiter, terminator rune) (seqNum in
 
 	ci.TransactionDate, err = time.Parse(utils.SIPDateFormat, string(runes[6:24]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	ci.InstitutionID = codes["AO"]
@@ -135,20 +138,20 @@ func (ci *Checkin) Unmarshal(line string, delimiter, terminator rune) (seqNum in
 
 	err = ci.Validate()
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return seqNum, nil
+	return nil
 }
 
 func (ci *Checkin) Validate() error {
 	if ci.MediaType != "" && utf8.RuneCountInString(ci.MediaType) != 3 {
-		return fmt.Errorf("invalid SIP %s response did not pass validation: MediaType must be 3 chars", MsgIDCheckin)
+		return fmt.Errorf("invalid SIP %s did not pass validation: MediaType must be 3 chars", types.RespCheckin.String())
 	}
 
 	err := Validate.Struct(ci)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s response did not pass validation: %v", MsgIDCheckin, err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.RespCheckin.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

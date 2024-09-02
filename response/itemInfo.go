@@ -8,12 +8,11 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
-const MsgIDItemInfo = "18"
-
-var ErrInvalidResponse18 = fmt.Errorf("Invalid SIP %s response", MsgIDItemInfo)
+var ErrInvalidResponse18 = fmt.Errorf("Invalid SIP %s", types.RespItemInfo.String())
 
 // The ACS must send this message in response to the Item Information message.
 type ItemInfo struct {
@@ -43,12 +42,14 @@ type ItemInfo struct {
 	ItemProperties    string `validate:"sip"`
 	ScreenMessage     string `validate:"sip"`
 	PrintLine         string `validate:"sip"`
+
+	SeqNum int `validate:"min=0,max=9"`
 }
 
-func (ii *ItemInfo) Marshal(seqNum int, delimiter, terminator rune) string {
+func (ii *ItemInfo) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
 
-	msg.WriteString(MsgIDItemInfo)
+	msg.WriteString(types.RespItemInfo.ID())
 
 	fmt.Fprintf(&msg, "%02d", ii.CirculationStatus)
 	fmt.Fprintf(&msg, "%02d", ii.SecurityMarker)
@@ -110,59 +111,61 @@ func (ii *ItemInfo) Marshal(seqNum int, delimiter, terminator rune) string {
 		fmt.Fprintf(&msg, "AG%s%c", ii.PrintLine, delimiter)
 	}
 
-	if seqNum < 0 {
-		seqNum = 0
+	if errorDetection {
+		fmt.Fprintf(&msg, "AY%dAZ", ii.SeqNum)
+		msg.WriteString(utils.ComputeChecksum(msg.String()))
 	}
-
-	return fmt.Sprintf("%s%c", utils.AppendChecksum(fmt.Sprintf("%sAY%dAZ", msg.String(), seqNum)), terminator)
+	msg.WriteRune(terminator)
+	return msg.String()
 }
 
-func (ii *ItemInfo) Unmarshal(line string, delimiter, terminator rune) (seqNum int, err error) {
+func (ii *ItemInfo) Unmarshal(line string, delimiter, terminator rune) error {
+	var err error
 	runes := []rune(line)
 
 	if len(runes) < 32 {
-		return 0, ErrInvalidResponse18
+		return ErrInvalidResponse18
 	}
 
-	if string(runes[0:2]) != MsgIDItemInfo {
-		return 0, ErrInvalidResponse18
+	if string(runes[0:2]) != types.RespItemInfo.ID() {
+		return ErrInvalidResponse18
 	}
 
 	codes := utils.ExtractFields(string(runes[26:]), delimiter, map[string]string{"AY": "", "CF": "", "AH": "", "CJ": "", "CM": "", "AB": "", "AJ": "", "BG": "", "BH": "", "BV": "", "CK": "", "AQ": "", "AP": "", "CH": "", "AF": "", "AG": ""})
 	seqNumString := codes["AY"]
 	if seqNumString == "" {
-		seqNum = 0
+		ii.SeqNum = 0
 	} else {
-		seqNum, err = strconv.Atoi(seqNumString)
+		ii.SeqNum, err = strconv.Atoi(seqNumString)
 		if err != nil {
-			seqNum = 0
+			ii.SeqNum = 0
 		}
 	}
 
 	ii.CirculationStatus, err = strconv.Atoi(string(runes[2:4]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	ii.SecurityMarker, err = strconv.Atoi(string(runes[4:6]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	ii.FeeType, err = strconv.Atoi(string(runes[6:8]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	ii.TransactionDate, err = time.Parse(utils.SIPDateFormat, string(runes[8:26]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	if codes["CF"] != "" {
 		ii.HoldQueueLength, err = strconv.Atoi(codes["CF"])
 		if err != nil {
-			return 0, err
+			return err
 		}
 	} else {
 		ii.HoldQueueLength = -1
@@ -173,14 +176,14 @@ func (ii *ItemInfo) Unmarshal(line string, delimiter, terminator rune) (seqNum i
 	if codes["CJ"] != "" {
 		ii.RecallDate, err = time.Parse(utils.SIPDateFormat, codes["CJ"])
 		if err != nil {
-			return 0, err
+			return err
 		}
 	}
 
 	if codes["CM"] != "" {
 		ii.HoldPickupDate, err = time.Parse(utils.SIPDateFormat, codes["CM"])
 		if err != nil {
-			return 0, err
+			return err
 		}
 	}
 
@@ -206,24 +209,24 @@ func (ii *ItemInfo) Unmarshal(line string, delimiter, terminator rune) (seqNum i
 
 	err = ii.Validate()
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return seqNum, nil
+	return nil
 }
 
 func (ii *ItemInfo) Validate() error {
 	if ii.CurrencyType != "" && utf8.RuneCountInString(ii.CurrencyType) != 3 {
-		return fmt.Errorf("invalid SIP %s response did not pass validation: CurrencyType must be 3 chars", MsgIDItemInfo)
+		return fmt.Errorf("invalid SIP %s did not pass validation: CurrencyType must be 3 chars", types.RespItemInfo.String())
 	}
 
 	if ii.MediaType != "" && utf8.RuneCountInString(ii.MediaType) != 3 {
-		return fmt.Errorf("invalid SIP %s response did not pass validation: MediaType must be 3 chars", MsgIDItemInfo)
+		return fmt.Errorf("invalid SIP %s did not pass validation: MediaType must be 3 chars", types.RespItemInfo.String())
 	}
 
 	err := Validate.Struct(ii)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s response did not pass validation: %v", MsgIDItemInfo, err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.RespItemInfo.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

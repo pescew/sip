@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
@@ -40,22 +41,24 @@ func TestRenew(t *testing.T) {
 		TransactionID:   "12345",
 		ScreenMessage:   "msg",
 		PrintLine:       "print",
+
+		SeqNum: 3,
 	}
 
-	sipString := resp.Marshal(3, delimiter, terminator)
+	sipString := resp.Marshal(delimiter, terminator, true)
 
-	parsed, msgID, seqNum, err := Unmarshal(sipString, delimiter, terminator)
+	parsed, msgID, err := Unmarshal(sipString, delimiter, terminator)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	respParsed = parsed.(*Renew)
 
-	if seqNum != 3 {
+	if respParsed.SeqNum != 3 {
 		t.Fatalf("Sequence Number mismatch")
 	}
 
-	if msgID != MsgIDRenew {
+	if msgID != types.RespRenew.ID() {
 		t.Fatalf("Message ID mismatch")
 	}
 

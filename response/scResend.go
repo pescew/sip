@@ -2,42 +2,47 @@ package response
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
-const MsgIDSCResend = "96"
-
-var ErrInvalidResponse96 = fmt.Errorf("Invalid SIP %s response", MsgIDSCResend)
+var ErrInvalidResponse96 = fmt.Errorf("Invalid SIP %s response", types.RespSCResend.String())
 
 // This message requests the SC to re-transmit its last message. It is sent by the ACS to the SC when the checksum in a received message does not match the value calculated by the ACS. The SC should respond by re-transmitting its last message, This message should never include a “sequence number” field, even when error detection is enabled, (see “Checksums and Sequence Numbers” below) but would include a “checksum” field since checksums are in use.
 type SCResend struct{}
 
-func (scr *SCResend) Marshal(seqNum int, delimiter, terminator rune) string {
-	msg := MsgIDSCResend
-
-	return fmt.Sprintf("%s%c", utils.AppendChecksum(fmt.Sprintf("%sAZ", msg)), terminator)
+func (scr *SCResend) Marshal(delimiter, terminator rune, errorDetection bool) string {
+	if errorDetection {
+		var msg strings.Builder
+		fmt.Fprintf(&msg, "%sAZ", types.RespSCResend.ID())
+		msg.WriteString(utils.ComputeChecksum(msg.String()))
+		msg.WriteRune(terminator)
+		return msg.String()
+	}
+	return fmt.Sprintf("%s%c", types.RespSCResend.ID(), terminator)
 }
 
-func (scr *SCResend) Unmarshal(line string, delimiter, terminator rune) (seqNum int, err error) {
+func (scr *SCResend) Unmarshal(line string, delimiter, terminator rune) error {
 	runes := []rune(line)
 
 	if len(runes) < 2 {
-		return 0, ErrInvalidResponse96
+		return ErrInvalidResponse96
 	}
 
-	if string(runes[0:2]) != MsgIDSCResend {
-		return 0, ErrInvalidResponse96
+	if string(runes[0:2]) != types.RespSCResend.ID() {
+		return ErrInvalidResponse96
 	}
 
-	return seqNum, nil
+	return nil
 }
 
 func (scr *SCResend) Validate() error {
 	err := Validate.Struct(scr)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s response did not pass validation: %v", MsgIDSCResend, err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.RespSCResend.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

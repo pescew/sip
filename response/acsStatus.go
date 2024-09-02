@@ -8,12 +8,11 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/pescew/sip/fields"
+	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
-const MsgIDACSStatus = "98"
-
-var ErrInvalidResponse98 = fmt.Errorf("Invalid SIP %s response", MsgIDACSStatus)
+var ErrInvalidResponse98 = fmt.Errorf("Invalid SIP %s", types.RespACSStatus.String())
 
 // The ACS must send this message in response to a SC Status message. This message will be the first message sent by the ACS to the SC, since it establishes some of the rules to be followed by the SC and establishes some parameters needed for further communication (exception: the Login Response Message may be sent first to complete login of the SC).
 type ACSStatus struct {
@@ -40,12 +39,14 @@ type ACSStatus struct {
 	TerminalLocation string `validate:"sip"`
 	ScreenMessage    string `validate:"sip"`
 	PrintLine        string `validate:"sip"`
+
+	SeqNum int `validate:"min=0,max=9"`
 }
 
-func (st *ACSStatus) Marshal(seqNum int, delimiter, terminator rune) string {
+func (st *ACSStatus) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
 
-	msg.WriteString(MsgIDACSStatus)
+	msg.WriteString(types.RespACSStatus.ID())
 
 	msg.WriteString(utils.YorN(st.OnlineStatus))
 	msg.WriteString(utils.YorN(st.CheckinOK))
@@ -81,32 +82,34 @@ func (st *ACSStatus) Marshal(seqNum int, delimiter, terminator rune) string {
 		fmt.Fprintf(&msg, "AG%s%c", st.PrintLine, delimiter)
 	}
 
-	if seqNum < 0 {
-		seqNum = 0
+	if errorDetection {
+		fmt.Fprintf(&msg, "AY%dAZ", st.SeqNum)
+		msg.WriteString(utils.ComputeChecksum(msg.String()))
 	}
-
-	return fmt.Sprintf("%s%c", utils.AppendChecksum(fmt.Sprintf("%sAY%dAZ", msg.String(), seqNum)), terminator)
+	msg.WriteRune(terminator)
+	return msg.String()
 }
 
-func (st *ACSStatus) Unmarshal(line string, delimiter, terminator rune) (seqNum int, err error) {
+func (st *ACSStatus) Unmarshal(line string, delimiter, terminator rune) error {
+	var err error
 	runes := []rune(line)
 
 	if len(runes) < 42 {
-		return 0, ErrInvalidResponse98
+		return ErrInvalidResponse98
 	}
 
-	if string(runes[0:2]) != MsgIDACSStatus {
-		return 0, ErrInvalidResponse98
+	if string(runes[0:2]) != types.RespACSStatus.ID() {
+		return ErrInvalidResponse98
 	}
 
 	codes := utils.ExtractFields(string(runes[36:]), delimiter, map[string]string{"AY": "", "AO": "", "AM": "", "BX": "", "AN": "", "AF": "", "AG": ""})
 	seqNumString := codes["AY"]
 	if seqNumString == "" {
-		seqNum = 0
+		st.SeqNum = 0
 	} else {
-		seqNum, err = strconv.Atoi(seqNumString)
+		st.SeqNum, err = strconv.Atoi(seqNumString)
 		if err != nil {
-			seqNum = 0
+			st.SeqNum = 0
 		}
 	}
 
@@ -119,17 +122,17 @@ func (st *ACSStatus) Unmarshal(line string, delimiter, terminator rune) (seqNum 
 
 	st.TimeoutPeriod, err = strconv.Atoi(string(runes[8:11]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	st.RetriesAllowed, err = strconv.Atoi(string(runes[11:14]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	st.DateTimeSync, err = time.Parse(utils.SIPDateFormat, string(runes[14:32]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	st.ProtocolVersion = string(runes[32:36])
@@ -156,16 +159,16 @@ func (st *ACSStatus) Unmarshal(line string, delimiter, terminator rune) (seqNum 
 
 	err = st.Validate()
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return seqNum, nil
+	return nil
 }
 
 func (st *ACSStatus) Validate() error {
 	err := Validate.Struct(st)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s response did not pass validation: %v", MsgIDACSStatus, err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.RespACSStatus.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

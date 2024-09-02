@@ -7,12 +7,11 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
-const MsgIDEndSession = "36"
-
-var ErrInvalidResponse36 = fmt.Errorf("Invalid SIP %s response", MsgIDEndSession)
+var ErrInvalidResponse36 = fmt.Errorf("Invalid SIP %s", types.RespEndSession.String())
 
 // The ACS must send this message in response to the End Patron Session message.
 type EndSession struct {
@@ -25,12 +24,14 @@ type EndSession struct {
 	// Optional Fields:
 	ScreenMessage string `validate:"sip"`
 	PrintLine     string `validate:"sip"`
+
+	SeqNum int `validate:"min=0,max=9"`
 }
 
-func (es *EndSession) Marshal(seqNum int, delimiter, terminator rune) string {
+func (es *EndSession) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
 
-	msg.WriteString(MsgIDEndSession)
+	msg.WriteString(types.RespEndSession.ID())
 	msg.WriteString(utils.YorN(es.EndSession))
 	msg.WriteString(es.TransactionDate.Format(utils.SIPDateFormat))
 	fmt.Fprintf(&msg, "AO%s%c", es.InstitutionID, delimiter)
@@ -44,32 +45,34 @@ func (es *EndSession) Marshal(seqNum int, delimiter, terminator rune) string {
 		fmt.Fprintf(&msg, "AG%s%c", es.PrintLine, delimiter)
 	}
 
-	if seqNum < 0 {
-		seqNum = 0
+	if errorDetection {
+		fmt.Fprintf(&msg, "AY%dAZ", es.SeqNum)
+		msg.WriteString(utils.ComputeChecksum(msg.String()))
 	}
-
-	return fmt.Sprintf("%s%c", utils.AppendChecksum(fmt.Sprintf("%sAY%dAZ", msg.String(), seqNum)), terminator)
+	msg.WriteRune(terminator)
+	return msg.String()
 }
 
-func (es *EndSession) Unmarshal(line string, delimiter, terminator rune) (seqNum int, err error) {
+func (es *EndSession) Unmarshal(line string, delimiter, terminator rune) error {
+	var err error
 	runes := []rune(line)
 
 	if len(runes) < 27 {
-		return 0, ErrInvalidResponse36
+		return ErrInvalidResponse36
 	}
 
-	if string(runes[0:2]) != MsgIDEndSession {
-		return 0, ErrInvalidResponse36
+	if string(runes[0:2]) != types.RespEndSession.ID() {
+		return ErrInvalidResponse36
 	}
 
 	codes := utils.ExtractFields(string(runes[21:]), delimiter, map[string]string{"AY": "", "AO": "", "AA": "", "AF": "", "AG": ""})
 	seqNumString := codes["AY"]
 	if seqNumString == "" {
-		seqNum = 0
+		es.SeqNum = 0
 	} else {
-		seqNum, err = strconv.Atoi(seqNumString)
+		es.SeqNum, err = strconv.Atoi(seqNumString)
 		if err != nil {
-			seqNum = 0
+			es.SeqNum = 0
 		}
 	}
 
@@ -77,7 +80,7 @@ func (es *EndSession) Unmarshal(line string, delimiter, terminator rune) (seqNum
 
 	es.TransactionDate, err = time.Parse(utils.SIPDateFormat, string(runes[3:21]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	es.InstitutionID = codes["AO"]
@@ -88,16 +91,16 @@ func (es *EndSession) Unmarshal(line string, delimiter, terminator rune) (seqNum
 
 	err = es.Validate()
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return seqNum, nil
+	return nil
 }
 
 func (es *EndSession) Validate() error {
 	err := Validate.Struct(es)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s response did not pass validation: %v", MsgIDEndSession, err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.RespEndSession.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

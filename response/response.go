@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
@@ -15,55 +16,55 @@ var (
 )
 
 type Response interface {
-	Marshal(seqNum int, delimiter, terminator rune) string
-	Unmarshal(line string, delimiter, terminator rune) (seqNum int, err error)
+	Marshal(delimiter, terminator rune, errorDetection bool) string
+	Unmarshal(line string, delimiter, terminator rune) error
 	Validate() error
 }
 
-func Unmarshal(line string, delimiter, terminator rune) (resp Response, msgID string, seqNum int, err error) {
+func Unmarshal(line string, delimiter, terminator rune) (resp Response, msgID string, err error) {
 	msgID = line[0:2]
 
 	switch msgID {
-	case MsgIDCheckin:
+	case types.RespCheckin.ID():
 		resp = &Checkin{}
-	case MsgIDCheckout:
+	case types.RespCheckout.ID():
 		resp = &Checkout{}
-	case MsgIDHold:
+	case types.RespHold.ID():
 		resp = &Hold{}
-	case MsgIDItemInfo:
+	case types.RespItemInfo.ID():
 		resp = &ItemInfo{}
-	case MsgIDItemStatusUpdate:
+	case types.RespItemStatusUpdate.ID():
 		resp = &ItemStatusUpdate{}
-	case MsgIDPatronStatus:
+	case types.RespPatronStatus.ID():
 		resp = &PatronStatus{}
-	case MsgIDPatronEnable:
+	case types.RespPatronEnable.ID():
 		resp = &PatronEnable{}
-	case MsgIDRenew:
+	case types.RespRenew.ID():
 		resp = &Renew{}
-	case MsgIDEndSession:
+	case types.RespEndSession.ID():
 		resp = &EndSession{}
-	case MsgIDFeePaid:
+	case types.RespFeePaid.ID():
 		resp = &FeePaid{}
-	case MsgIDPatronInfo:
+	case types.RespPatronInfo.ID():
 		resp = &PatronInfo{}
-	case MsgIDRenewAll:
+	case types.RespRenewAll.ID():
 		resp = &RenewAll{}
-	case MsgIDSCLogin:
+	case types.RespSCLogin.ID():
 		resp = &SCLogin{}
-	case MsgIDSCResend:
+	case types.RespSCResend.ID():
 		resp = &SCResend{}
-	case MsgIDACSStatus:
+	case types.RespACSStatus.ID():
 		resp = &ACSStatus{}
 	default:
-		return nil, "", 0, ErrUnknownResponse
+		return nil, msgID, ErrUnknownResponse
 	}
 
-	seqNum, err = resp.Unmarshal(line, delimiter, terminator)
+	err = resp.Unmarshal(line, delimiter, terminator)
 	if err != nil {
-		return nil, "", 0, err
+		return nil, msgID, err
 	}
 
-	return resp, msgID, seqNum, nil
+	return resp, msgID, nil
 }
 
 func InitValidator(excludeChars ...rune) {

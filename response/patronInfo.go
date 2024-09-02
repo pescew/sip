@@ -9,12 +9,11 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/pescew/sip/fields"
+	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
-const MsgIDPatronInfo = "64"
-
-var ErrInvalidResponse64 = fmt.Errorf("Invalid SIP %s response", MsgIDPatronInfo)
+var ErrInvalidResponse64 = fmt.Errorf("Invalid SIP %s", types.RespPatronInfo.String())
 
 // The ACS must send this message in response to the Patron Information message.
 type PatronInfo struct {
@@ -52,12 +51,14 @@ type PatronInfo struct {
 	HomePhone           string   `validate:"sip"`
 	ScreenMessage       string   `validate:"sip"`
 	PrintLine           string   `validate:"sip"`
+
+	SeqNum int `validate:"min=0,max=9"`
 }
 
-func (pi *PatronInfo) Marshal(seqNum int, delimiter, terminator rune) string {
+func (pi *PatronInfo) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
 
-	msg.WriteString(MsgIDPatronInfo)
+	msg.WriteString(types.RespPatronInfo.ID())
 	msg.WriteString(pi.PatronStatus.Marshal())
 
 	fmt.Fprintf(&msg, "%03d", pi.Language)
@@ -153,32 +154,34 @@ func (pi *PatronInfo) Marshal(seqNum int, delimiter, terminator rune) string {
 		fmt.Fprintf(&msg, "AG%s%c", pi.PrintLine, delimiter)
 	}
 
-	if seqNum < 0 {
-		seqNum = 0
+	if errorDetection {
+		fmt.Fprintf(&msg, "AY%dAZ", pi.SeqNum)
+		msg.WriteString(utils.ComputeChecksum(msg.String()))
 	}
-
-	return fmt.Sprintf("%s%c", utils.AppendChecksum(fmt.Sprintf("%sAY%dAZ", msg.String(), seqNum)), terminator)
+	msg.WriteRune(terminator)
+	return msg.String()
 }
 
-func (pi *PatronInfo) Unmarshal(line string, delimiter, terminator rune) (seqNum int, err error) {
+func (pi *PatronInfo) Unmarshal(line string, delimiter, terminator rune) error {
+	var err error
 	runes := []rune(line)
 
 	if len(runes) < 73 {
-		return 0, ErrInvalidResponse64
+		return ErrInvalidResponse64
 	}
 
-	if string(runes[0:2]) != MsgIDPatronInfo {
-		return 0, ErrInvalidResponse64
+	if string(runes[0:2]) != types.RespPatronInfo.ID() {
+		return ErrInvalidResponse64
 	}
 
 	codes := utils.ExtractFields(string(runes[61:]), delimiter, map[string]string{"AY": "", "AO": "", "AA": "", "AE": "", "BZ": "", "CA": "", "CB": "", "BL": "", "CQ": "", "BH": "", "BV": "", "CC": "", "BD": "", "BE": "", "BF": "", "AF": "", "AG": ""})
 	seqNumString := codes["AY"]
 	if seqNumString == "" {
-		seqNum = 0
+		pi.SeqNum = 0
 	} else {
-		seqNum, err = strconv.Atoi(seqNumString)
+		pi.SeqNum, err = strconv.Atoi(seqNumString)
 		if err != nil {
-			seqNum = 0
+			pi.SeqNum = 0
 		}
 	}
 
@@ -186,47 +189,47 @@ func (pi *PatronInfo) Unmarshal(line string, delimiter, terminator rune) (seqNum
 
 	err = pi.PatronStatus.Unmarshal(string(runes[2:16]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	pi.Language, err = strconv.Atoi(string(runes[16:19]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	pi.TransactionDate, err = time.Parse(utils.SIPDateFormat, string(runes[19:37]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	pi.HoldItemsCount, err = strconv.Atoi(string(runes[37:41]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	pi.OverdueItemsCount, err = strconv.Atoi(string(runes[41:45]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	pi.ChargedItemsCount, err = strconv.Atoi(string(runes[45:49]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	pi.FineItemsCount, err = strconv.Atoi(string(runes[49:53]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	pi.RecallItemsCount, err = strconv.Atoi(string(runes[53:57]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	pi.UnavailableHoldsCount, err = strconv.Atoi(string(runes[57:61]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	pi.InstitutionID = codes["AO"]
@@ -236,21 +239,21 @@ func (pi *PatronInfo) Unmarshal(line string, delimiter, terminator rune) (seqNum
 	if codes["BZ"] != "" {
 		pi.HoldItemsLimit, err = strconv.Atoi(codes["BZ"])
 		if err != nil {
-			return 0, err
+			return err
 		}
 	}
 
 	if codes["CA"] != "" {
 		pi.OverdueItemsLimit, err = strconv.Atoi(codes["CA"])
 		if err != nil {
-			return 0, err
+			return err
 		}
 	}
 
 	if codes["CB"] != "" {
 		pi.ChargedItemsLimit, err = strconv.Atoi(codes["CB"])
 		if err != nil {
-			return 0, err
+			return err
 		}
 	}
 
@@ -284,20 +287,20 @@ func (pi *PatronInfo) Unmarshal(line string, delimiter, terminator rune) (seqNum
 
 	err = pi.Validate()
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return seqNum, nil
+	return nil
 }
 
 func (pi *PatronInfo) Validate() error {
 	if pi.CurrencyType != "" && utf8.RuneCountInString(pi.CurrencyType) != 3 {
-		return fmt.Errorf("invalid SIP %s response did not pass validation: CurrencyType must be 3 chars", MsgIDRenew)
+		return fmt.Errorf("invalid SIP %s did not pass validation: CurrencyType must be 3 chars", types.RespPatronInfo.String())
 	}
 
 	err := Validate.Struct(pi)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s response did not pass validation: %v", MsgIDPatronInfo, err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.RespPatronInfo.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

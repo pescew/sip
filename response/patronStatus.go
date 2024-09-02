@@ -9,12 +9,11 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/pescew/sip/fields"
+	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
-const MsgIDPatronStatus = "24"
-
-var ErrInvalidResponse24 = fmt.Errorf("Invalid SIP %s response", MsgIDPatronStatus)
+var ErrInvalidResponse24 = fmt.Errorf("Invalid SIP %s", types.RespPatronStatus.String())
 
 // The ACS must send this message in response to a Patron Status Request message as well as in response to a Block Patron message.
 type PatronStatus struct {
@@ -33,12 +32,14 @@ type PatronStatus struct {
 	FeeAmount           string `validate:"sip"`
 	ScreenMessage       string `validate:"sip"`
 	PrintLine           string `validate:"sip"`
+
+	SeqNum int `validate:"min=0,max=9"`
 }
 
-func (ps *PatronStatus) Marshal(seqNum int, delimiter, terminator rune) string {
+func (ps *PatronStatus) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
 
-	msg.WriteString(MsgIDPatronStatus)
+	msg.WriteString(types.RespPatronStatus.ID())
 
 	msg.WriteString(ps.PatronStatus.Marshal())
 	fmt.Fprintf(&msg, "%03d", ps.Language)
@@ -66,48 +67,50 @@ func (ps *PatronStatus) Marshal(seqNum int, delimiter, terminator rune) string {
 		fmt.Fprintf(&msg, "AG%s%c", ps.PrintLine, delimiter)
 	}
 
-	if seqNum < 0 {
-		seqNum = 0
+	if errorDetection {
+		fmt.Fprintf(&msg, "AY%dAZ", ps.SeqNum)
+		msg.WriteString(utils.ComputeChecksum(msg.String()))
 	}
-
-	return fmt.Sprintf("%s%c", utils.AppendChecksum(fmt.Sprintf("%sAY%dAZ", msg.String(), seqNum)), terminator)
+	msg.WriteRune(terminator)
+	return msg.String()
 }
 
-func (ps *PatronStatus) Unmarshal(line string, delimiter, terminator rune) (seqNum int, err error) {
+func (ps *PatronStatus) Unmarshal(line string, delimiter, terminator rune) error {
+	var err error
 	runes := []rune(line)
 
 	if len(runes) < 46 {
-		return 0, ErrInvalidResponse24
+		return ErrInvalidResponse24
 	}
 
-	if string(runes[0:2]) != MsgIDPatronStatus {
-		return 0, ErrInvalidResponse24
+	if string(runes[0:2]) != types.RespPatronStatus.ID() {
+		return ErrInvalidResponse24
 	}
 
 	codes := utils.ExtractFields(string(runes[37:]), delimiter, map[string]string{"AY": "", "AO": "", "AA": "", "AE": "", "BL": "", "CQ": "", "BH": "", "BV": "", "AF": "", "AG": ""})
 	seqNumString := codes["AY"]
 	if seqNumString == "" {
-		seqNum = 0
+		ps.SeqNum = 0
 	} else {
-		seqNum, err = strconv.Atoi(seqNumString)
+		ps.SeqNum, err = strconv.Atoi(seqNumString)
 		if err != nil {
-			seqNum = 0
+			ps.SeqNum = 0
 		}
 	}
 
 	err = ps.PatronStatus.Unmarshal(string(runes[2:16]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	ps.Language, err = strconv.Atoi(string(runes[16:19]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	ps.TransactionDate, err = time.Parse(utils.SIPDateFormat, string(runes[19:37]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	ps.InstitutionID = codes["AO"]
@@ -132,20 +135,20 @@ func (ps *PatronStatus) Unmarshal(line string, delimiter, terminator rune) (seqN
 
 	err = ps.Validate()
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return seqNum, nil
+	return nil
 }
 
 func (ps *PatronStatus) Validate() error {
 	if ps.CurrencyType != "" && utf8.RuneCountInString(ps.CurrencyType) != 3 {
-		return fmt.Errorf("invalid SIP %s response did not pass validation: CurrencyType must be 3 chars", MsgIDRenew)
+		return fmt.Errorf("invalid SIP %s did not pass validation: CurrencyType must be 3 chars", types.RespPatronStatus.String())
 	}
 
 	err := Validate.Struct(ps)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s response did not pass validation: %v", MsgIDPatronStatus, err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.RespPatronStatus.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

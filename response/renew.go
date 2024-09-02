@@ -8,12 +8,11 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
-const MsgIDRenew = "30"
-
-var ErrInvalidResponse30 = fmt.Errorf("Invalid SIP %s response", MsgIDRenew)
+var ErrInvalidResponse30 = fmt.Errorf("Invalid SIP %s", types.RespRenew.String())
 
 // This message must be sent by the ACS in response to a Renew message by the SC.
 type Renew struct {
@@ -39,12 +38,14 @@ type Renew struct {
 	TransactionID   string `validate:"sip"`
 	ScreenMessage   string `validate:"sip"`
 	PrintLine       string `validate:"sip"`
+
+	SeqNum int `validate:"min=0,max=9"`
 }
 
-func (rn *Renew) Marshal(seqNum int, delimiter, terminator rune) string {
+func (rn *Renew) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
 
-	msg.WriteString(MsgIDRenew)
+	msg.WriteString(types.RespRenew.ID())
 	msg.WriteString(utils.ZeroOrOne(rn.Ok))
 	msg.WriteString(utils.YorN(rn.RenewalOk))
 	msg.WriteString(utils.YorN(rn.MagneticMedia))
@@ -90,32 +91,34 @@ func (rn *Renew) Marshal(seqNum int, delimiter, terminator rune) string {
 		fmt.Fprintf(&msg, "AG%s%c", rn.PrintLine, delimiter)
 	}
 
-	if seqNum < 0 {
-		seqNum = 0
+	if errorDetection {
+		fmt.Fprintf(&msg, "AY%dAZ", rn.SeqNum)
+		msg.WriteString(utils.ComputeChecksum(msg.String()))
 	}
-
-	return fmt.Sprintf("%s%c", utils.AppendChecksum(fmt.Sprintf("%sAY%dAZ", msg.String(), seqNum)), terminator)
+	msg.WriteRune(terminator)
+	return msg.String()
 }
 
-func (rn *Renew) Unmarshal(line string, delimiter, terminator rune) (seqNum int, err error) {
+func (rn *Renew) Unmarshal(line string, delimiter, terminator rune) error {
+	var err error
 	runes := []rune(line)
 
 	if len(runes) < 39 {
-		return 0, ErrInvalidResponse30
+		return ErrInvalidResponse30
 	}
 
-	if string(runes[0:2]) != MsgIDRenew {
-		return 0, ErrInvalidResponse30
+	if string(runes[0:2]) != types.RespRenew.ID() {
+		return ErrInvalidResponse30
 	}
 
 	codes := utils.ExtractFields(string(runes[24:]), delimiter, map[string]string{"AY": "", "AO": "", "AA": "", "AB": "", "AJ": "", "AH": "", "BT": "", "CI": "", "BH": "", "BV": "", "CK": "", "CH": "", "BK": "", "AF": "", "AG": ""})
 	seqNumString := codes["AY"]
 	if seqNumString == "" {
-		seqNum = 0
+		rn.SeqNum = 0
 	} else {
-		seqNum, err = strconv.Atoi(seqNumString)
+		rn.SeqNum, err = strconv.Atoi(seqNumString)
 		if err != nil {
-			seqNum = 0
+			rn.SeqNum = 0
 		}
 	}
 
@@ -126,7 +129,7 @@ func (rn *Renew) Unmarshal(line string, delimiter, terminator rune) (seqNum int,
 
 	rn.TransactionDate, err = time.Parse(utils.SIPDateFormat, string(runes[6:24]))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	rn.InstitutionID = codes["AO"]
@@ -138,7 +141,7 @@ func (rn *Renew) Unmarshal(line string, delimiter, terminator rune) (seqNum int,
 	if codes["BT"] != "" {
 		rn.FeeType, err = strconv.Atoi(codes["BT"])
 		if err != nil {
-			return 0, err
+			return err
 		}
 	}
 
@@ -163,24 +166,24 @@ func (rn *Renew) Unmarshal(line string, delimiter, terminator rune) (seqNum int,
 
 	err = rn.Validate()
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return seqNum, nil
+	return nil
 }
 
 func (rn *Renew) Validate() error {
 	if rn.CurrencyType != "" && utf8.RuneCountInString(rn.CurrencyType) != 3 {
-		return fmt.Errorf("invalid SIP %s response did not pass validation: CurrencyType must be 3 chars", MsgIDRenew)
+		return fmt.Errorf("invalid SIP %s did not pass validation: CurrencyType must be 3 chars", types.RespRenew.String())
 	}
 
 	if rn.MediaType != "" && utf8.RuneCountInString(rn.MediaType) != 3 {
-		return fmt.Errorf("invalid SIP %s response did not pass validation: MediaType must be 3 chars", MsgIDRenew)
+		return fmt.Errorf("invalid SIP %s did not pass validation: MediaType must be 3 chars", types.RespRenew.String())
 	}
 
 	err := Validate.Struct(rn)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s response did not pass validation: %v", MsgIDRenew, err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.RespRenew.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

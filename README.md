@@ -18,18 +18,7 @@ import (
 )
 
 func main() {
-	srv, err := server.NewServer(server.ServerConfig{
-		Host:                "0.0.0.0",
-		Port:                9000,
-		DebugMode:           false,
-		LibraryID:           "lib",
-		InstitutionID:       "inst",
-		TerminalUsername:    "sc-user",
-		TerminalPassword:    "sc-pass",
-		TerminatorCharacter: '\r',
-		DelimiterCharacter:  '|',
-		ConnectionTimeout:   5,
-	})
+	srv, err := server.New(server.DefaultConfig())
 	if err != nil {
 		panic(err)
 	}
@@ -44,9 +33,10 @@ func main() {
 	}
 }
 
-func handleSCLogin(conn *net.TCPConn, r *request.SCLogin, seqNum int, s server.Settings) {
+func handleSCLogin(conn *net.TCPConn, r *request.SCLogin, s server.Settings) {
 	resp := response.SCLogin{
-		Ok: false,
+		Ok:     false,
+		SeqNum: r.SeqNum,
 	}
 
 	if strings.ToLower(r.LoginUserID) == strings.ToLower(s.TerminalUsername()) {
@@ -59,49 +49,42 @@ func handleSCLogin(conn *net.TCPConn, r *request.SCLogin, seqNum int, s server.S
 		fmt.Printf("SIP SC Login request user does not match configured terminal user: %s\n", r.LoginUserID)
 	}
 
-	respString := resp.Marshal(seqNum+1, s.DelimiterCharacter(), s.TerminatorCharacter())
+	respString := resp.Marshal(s.DelimiterCharacter(), s.TerminatorCharacter(), s.ErrorDetection())
 	if s.DebugMode() {
 		fmt.Printf("SCLogin Response: %s\n", respString)
 	}
 	conn.Write([]byte(respString))
 }
 
-func handleSCStatus(conn *net.TCPConn, r *request.SCStatus, seqNum int, s server.Settings) {
+func handleSCStatus(conn *net.TCPConn, r *request.SCStatus, s server.Settings) {
 	resp := response.ACSStatus{
-		// Required:
 		OnlineStatus:    true,
 		TimeoutPeriod:   100,
 		RetriesAllowed:  5,
 		DateTimeSync:    time.Now(),
 		ProtocolVersion: "2.00",
 		InstitutionID:   s.InstitutionID(),
-
-		// Optional:
-		LibraryName: s.LibraryID(),
-
-		// Required:
+		LibraryName:     s.LibraryID(),
 		SupportedMessages: fields.SupportedMessages{
 			SCACSStatus:       true,
 			Login:             true,
 			PatronInformation: true,
 		},
-
-		// Optional:
 		TerminalLocation: s.LibraryID(),
+		SeqNum:           r.SeqNum,
 	}
 
-	respString := resp.Marshal(seqNum+1, s.DelimiterCharacter(), s.TerminatorCharacter())
+	respString := resp.Marshal(s.DelimiterCharacter(), s.TerminatorCharacter(), s.ErrorDetection())
 	if s.DebugMode() {
 		fmt.Printf("SCStatus Response: %s\n", respString)
 	}
 	conn.Write([]byte(respString))
 }
 
-func handlePatronInfo(conn *net.TCPConn, r *request.PatronInfo, seqNum int, s server.Settings) {
+func handlePatronInfo(conn *net.TCPConn, r *request.PatronInfo, s server.Settings) {
 	var resp *response.PatronInfo
 	if strings.ToLower(r.PatronID) == "user" && r.PatronPassword == "pass" {
 		resp = &response.PatronInfo{
-			// Required Fields:
 			PatronStatus:          fields.PatronStatus{},
 			Language:              1,
 			TransactionDate:       time.Now(),
@@ -114,16 +97,15 @@ func handlePatronInfo(conn *net.TCPConn, r *request.PatronInfo, seqNum int, s se
 			InstitutionID:         s.InstitutionID(),
 			PatronID:              "user",
 			PatronName:            "Doe, John",
-
-			// Optional Fields:
-			ValidPatron:         true,
-			ValidPatronPassword: true,
+			ValidPatron:           true,
+			ValidPatronPassword:   true,
 		}
 	} else {
 		resp = BadPassword()
 	}
 
-	respString := resp.Marshal(seqNum+1, s.DelimiterCharacter(), s.TerminatorCharacter())
+	resp.SeqNum = r.SeqNum
+	respString := resp.Marshal(s.DelimiterCharacter(), s.TerminatorCharacter(), s.ErrorDetection())
 	if s.DebugMode() {
 		fmt.Printf("PatronInfo Response: %s\n", respString)
 	}
@@ -132,7 +114,6 @@ func handlePatronInfo(conn *net.TCPConn, r *request.PatronInfo, seqNum int, s se
 
 func BadPassword() *response.PatronInfo {
 	return &response.PatronInfo{
-		// Required Fields:
 		PatronStatus:          fields.PatronStatus{},
 		Language:              0,
 		TransactionDate:       time.Now(),
@@ -145,11 +126,8 @@ func BadPassword() *response.PatronInfo {
 		InstitutionID:         "",
 		PatronID:              "",
 		PatronName:            "",
-
-		// Optional Fields:
-		ValidPatron:         false,
-		ValidPatronPassword: false,
+		ValidPatron:           false,
+		ValidPatronPassword:   false,
 	}
 }
-
 ```

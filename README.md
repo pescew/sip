@@ -114,6 +114,10 @@ func handlePatronInfo(conn *net.TCPConn, r *request.PatronInfo, seqNum int, s se
 			InstitutionID:         s.InstitutionID(),
 			PatronID:              "user",
 			PatronName:            "Doe, John",
+
+			// Optional Fields:
+			ValidPatron:         true,
+			ValidPatronPassword: true,
 		}
 	} else {
 		resp = BadPassword()

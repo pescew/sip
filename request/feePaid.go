@@ -21,7 +21,7 @@ type FeePaid struct {
 	PaymentType     int       `validate:"required,min=0,max=99"`
 	CurrencyType    string    `validate:"required,sip,len=3"`
 	FeeAmount       string    `validate:"required,sip"`
-	InstitutionID   string    `validate:"required,sip"`
+	InstitutionID   string    `validate:"sip"`
 	PatronID        string    `validate:"required,sip"`
 
 	// Optional:

@@ -20,7 +20,7 @@ type RenewAll struct {
 	RenewedCount    int       `validate:"min=0,max=9999"`
 	UnrenewedCount  int       `validate:"min=0,max=9999"`
 	TransactionDate time.Time `validate:"required"`
-	InstitutionID   string    `validate:"required,sip"`
+	InstitutionID   string    `validate:"sip"`
 
 	// Optional:
 	RenewedItems   []string `validate:"dive,sip"`

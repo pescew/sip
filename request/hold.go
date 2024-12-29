@@ -26,7 +26,7 @@ type Hold struct {
 	HoldType       int    `validate:"min=0,max=9"`
 
 	// Required:
-	InstitutionID string `validate:"required,sip"`
+	InstitutionID string `validate:"sip"`
 	PatronID      string `validate:"required,sip"`
 
 	// Optional:

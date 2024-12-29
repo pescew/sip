@@ -26,8 +26,8 @@ type ACSStatus struct {
 	TimeoutPeriod   int       `validate:"min=0,max=999"`
 	RetriesAllowed  int       `validate:"min=0,max=999"`
 	DateTimeSync    time.Time `validate:"required"`
-	ProtocolVersion string    `validate:"required,sip,len=4,oneof=2.00"`
-	InstitutionID   string    `validate:"required,sip"`
+	ProtocolVersion string    `validate:"required,sip,len=4,oneof=1.00 2.00"`
+	InstitutionID   string    `validate:"sip"`
 
 	// Optional:
 	LibraryName string `validate:"sip"`

@@ -22,7 +22,7 @@ type Checkout struct {
 	MagneticMedia   bool
 	Desensitize     bool
 	TransactionDate time.Time `validate:"required"`
-	InstitutionID   string    `validate:"required,sip"`
+	InstitutionID   string    `validate:"sip"`
 	PatronID        string    `validate:"required,sip"`
 	ItemID          string    `validate:"required,sip"`
 	TitleID         string    `validate:"sip"`

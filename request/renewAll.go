@@ -18,7 +18,7 @@ var ErrInvalidRequest65 = fmt.Errorf("Invalid SIP %s request", types.ReqRenewAll
 type RenewAll struct {
 	// Required:
 	TransactionDate time.Time `validate:"required"`
-	InstitutionID   string    `validate:"required,sip"`
+	InstitutionID   string    `validate:"sip"`
 	PatronID        string    `validate:"required,sip"`
 
 	// Optional:

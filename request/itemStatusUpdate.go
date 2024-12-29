@@ -17,7 +17,7 @@ var ErrInvalidRequest19 = fmt.Errorf("Invalid SIP %s request", types.ReqItemStat
 type ItemStatusUpdate struct {
 	// Required:
 	TransactionDate time.Time `validate:"required"`
-	InstitutionID   string    `validate:"required,sip"`
+	InstitutionID   string    `validate:"sip"`
 	ItemID          string    `validate:"required,sip"`
 
 	// Optional:

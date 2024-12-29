@@ -17,7 +17,7 @@ type SCStatus struct {
 	// Required:
 	StatusCode      int    `validate:"min=0,max=2"`
 	MaxPrintWidth   int    `validate:"min=0,max=999"`
-	ProtocolVersion string `validate:"required,sip,len=4,oneof=2.00"`
+	ProtocolVersion string `validate:"required,sip,len=4,oneof=1.00 2.00"`
 
 	SeqNum int `validate:"min=0,max=9"`
 }

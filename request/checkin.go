@@ -21,7 +21,7 @@ type Checkin struct {
 	TransactionDate  time.Time `validate:"required"`
 	ReturnDate       time.Time `validate:"required"`
 	CurrentLocation  string    `validate:"required,sip"`
-	InstitutionID    string    `validate:"required,sip"`
+	InstitutionID    string    `validate:"sip"`
 	ItemID           string    `validate:"required,sip"`
 	TerminalPassword string    `validate:"sip"`
 

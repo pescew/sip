@@ -20,16 +20,18 @@ type Summary struct {
 	UnavailableHolds bool
 }
 
-func (s *Summary) Marshal() string {
+func (s *Summary) Marshal(pad bool) string {
 	var msg strings.Builder
 
-	msg.WriteString(utils.YorN(s.HoldItems))
-	msg.WriteString(utils.YorN(s.OverdueItems))
-	msg.WriteString(utils.YorN(s.ChargedItems))
-	msg.WriteString(utils.YorN(s.FineItems))
-	msg.WriteString(utils.YorN(s.RecallItems))
-	msg.WriteString(utils.YorN(s.UnavailableHolds))
-	msg.WriteString("    ")
+	msg.WriteString(utils.YorBlank(s.HoldItems))
+	msg.WriteString(utils.YorBlank(s.OverdueItems))
+	msg.WriteString(utils.YorBlank(s.ChargedItems))
+	msg.WriteString(utils.YorBlank(s.FineItems))
+	msg.WriteString(utils.YorBlank(s.RecallItems))
+	msg.WriteString(utils.YorBlank(s.UnavailableHolds))
+	if pad {
+		msg.WriteString("    ")
+	}
 
 	return msg.String()
 }

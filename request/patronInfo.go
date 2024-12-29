@@ -20,7 +20,7 @@ type PatronInfo struct {
 	Language        int            `validate:"min=0,max=999"`
 	TransactionDate time.Time      `validate:"required"`
 	Summary         fields.Summary `validate:"required"`
-	InstitutionID   string         `validate:"required,sip"`
+	InstitutionID   string         `validate:"sip"`
 	PatronID        string         `validate:"required,sip"`
 
 	// Optional:
@@ -38,7 +38,7 @@ func (pi *PatronInfo) Marshal(delimiter, terminator rune, errorDetection bool) s
 
 	fmt.Fprintf(&msg, "%03d", pi.Language)
 	msg.WriteString(pi.TransactionDate.Format(utils.SIPDateFormat))
-	msg.WriteString(pi.Summary.Marshal())
+	msg.WriteString(pi.Summary.Marshal(true))
 
 	fmt.Fprintf(&msg, "AO%s%c", pi.InstitutionID, delimiter)
 	fmt.Fprintf(&msg, "AA%s%c", pi.PatronID, delimiter)

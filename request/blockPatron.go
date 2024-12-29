@@ -18,7 +18,7 @@ type BlockPatron struct {
 	// Required:
 	CardRetained     bool
 	TransactionDate  time.Time `validate:"required"`
-	InstitutionID    string    `validate:"required,sip"`
+	InstitutionID    string    `validate:"sip"`
 	BlockedCardMsg   string    `validate:"sip"`
 	PatronID         string    `validate:"required,sip"`
 	TerminalPassword string    `validate:"sip"`

@@ -1,6 +1,6 @@
 module github.com/pescew/sip
 
-go 1.22.3
+go 1.23.4
 
 require (
 	github.com/gabriel-vasile/mimetype v1.4.7 // indirect

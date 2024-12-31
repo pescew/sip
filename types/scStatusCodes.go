@@ -17,15 +17,15 @@ var scStatusCodes = [...]string{
 }
 
 func (s SCStatusCode) ID() string {
-	if int(s) >= len(scStatusIDs) || int(s) < 1 {
-		return scStatusIDs[1]
+	if int(s) >= len(scStatusIDs) || s < 0 {
+		return scStatusIDs[0]
 	}
 	return scStatusIDs[s]
 }
 
 func (s SCStatusCode) String() string {
-	if int(s) >= len(scStatusCodes) || int(s) < 1 {
-		return scStatusCodes[1]
+	if int(s) >= len(scStatusCodes) || s < 0 {
+		return scStatusCodes[0]
 	}
 	return scStatusCodes[s]
 }

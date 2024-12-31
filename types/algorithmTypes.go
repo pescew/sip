@@ -31,14 +31,14 @@ var algorithmDescriptions = [...]string{
 }
 
 func (s Algorithm) ID() string {
-	if int(s) >= len(algorithmIDs) || int(s) < 0 {
+	if int(s) >= len(algorithmIDs) || s < 0 {
 		return algorithmIDs[0]
 	}
 	return algorithmIDs[s]
 }
 
 func (s Algorithm) String() string {
-	if int(s) >= len(algorithmDescriptions) || int(s) < 0 {
+	if int(s) >= len(algorithmDescriptions) || s < 0 {
 		return algorithmDescriptions[0]
 	}
 	return algorithmDescriptions[s]

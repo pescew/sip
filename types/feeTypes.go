@@ -31,14 +31,14 @@ var feeTypes = [...]string{
 }
 
 func (f FeeType) ID() string {
-	if int(f) >= len(feeIDs) || int(f) < 1 {
+	if int(f) >= len(feeIDs) || f < 1 {
 		return feeIDs[1]
 	}
 	return feeIDs[f]
 }
 
 func (f FeeType) String() string {
-	if int(f) >= len(feeTypes) || int(f) < 1 {
+	if int(f) >= len(feeTypes) || f < 1 {
 		return feeTypes[1]
 	}
 	return feeTypes[f]

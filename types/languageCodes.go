@@ -67,14 +67,14 @@ var languageCodes = [...]string{
 }
 
 func (l LanguageCode) ID() string {
-	if int(l) >= len(languageIDs) || int(l) < 0 {
+	if int(l) >= len(languageIDs) || l < 0 {
 		return languageIDs[0]
 	}
 	return languageIDs[l]
 }
 
 func (l LanguageCode) String() string {
-	if int(l) >= len(languageCodes) || int(l) < 0 {
+	if int(l) >= len(languageCodes) || l < 0 {
 		return languageCodes[0]
 	}
 	return languageCodes[l]

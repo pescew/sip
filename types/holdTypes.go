@@ -21,14 +21,14 @@ var holdTypes = [...]string{
 }
 
 func (h HoldType) ID() string {
-	if int(h) >= len(holdIDs) || int(h) < 1 {
+	if int(h) >= len(holdIDs) || h < 1 {
 		return holdIDs[1]
 	}
 	return holdIDs[h]
 }
 
 func (h HoldType) String() string {
-	if int(h) >= len(holdTypes) || int(h) < 1 {
+	if int(h) >= len(holdTypes) || h < 1 {
 		return holdTypes[1]
 	}
 	return holdTypes[h]

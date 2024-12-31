@@ -18,7 +18,11 @@ import (
 )
 
 func main() {
-	srv, err := server.New(server.DefaultConfig())
+	srvConfig := server.DefaultConfig()
+	srvConfig.DebugMode = true
+	srvConfig.Port = 9000
+
+	srv, err := server.New(srvConfig)
 	if err != nil {
 		panic(err)
 	}

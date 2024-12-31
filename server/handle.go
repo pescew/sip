@@ -8,8 +8,8 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/request"
-	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
@@ -49,67 +49,67 @@ func (server *Server) handleConnection(src *net.TCPConn) {
 		}
 
 		switch msgID {
-		case types.ReqBlockPatron.ID():
+		case fields.ReqBlockPatron.ID():
 			if server.handleBlockPatron != nil {
 				server.handleBlockPatron(src, req.(*request.BlockPatron), server.settings)
 			}
-		case types.ReqCheckin.ID():
+		case fields.ReqCheckin.ID():
 			if server.handleCheckin != nil {
 				server.handleCheckin(src, req.(*request.Checkin), server.settings)
 			}
-		case types.ReqCheckout.ID():
+		case fields.ReqCheckout.ID():
 			if server.handleCheckout != nil {
 				server.handleCheckout(src, req.(*request.Checkout), server.settings)
 			}
-		case types.ReqHold.ID():
+		case fields.ReqHold.ID():
 			if server.handleHold != nil {
 				server.handleHold(src, req.(*request.Hold), server.settings)
 			}
-		case types.ReqItemInfo.ID():
+		case fields.ReqItemInfo.ID():
 			if server.handleItemInfo != nil {
 				server.handleItemInfo(src, req.(*request.ItemInfo), server.settings)
 			}
-		case types.ReqItemStatusUpdate.ID():
+		case fields.ReqItemStatusUpdate.ID():
 			if server.handleItemStatusUpdate != nil {
 				server.handleItemStatusUpdate(src, req.(*request.ItemStatusUpdate), server.settings)
 			}
-		case types.ReqPatronStatus.ID():
+		case fields.ReqPatronStatus.ID():
 			if server.handlePatronStatus != nil {
 				server.handlePatronStatus(src, req.(*request.PatronStatus), server.settings)
 			}
-		case types.ReqPatronEnable.ID():
+		case fields.ReqPatronEnable.ID():
 			if server.handlePatronEnable != nil {
 				server.handlePatronEnable(src, req.(*request.PatronEnable), server.settings)
 			}
-		case types.ReqRenew.ID():
+		case fields.ReqRenew.ID():
 			if server.handleRenew != nil {
 				server.handleRenew(src, req.(*request.Renew), server.settings)
 			}
-		case types.ReqEndPatronSession.ID():
+		case fields.ReqEndPatronSession.ID():
 			if server.handleEndPatronSession != nil {
 				server.handleEndPatronSession(src, req.(*request.EndPatronSession), server.settings)
 			}
-		case types.ReqFeePaid.ID():
+		case fields.ReqFeePaid.ID():
 			if server.handleFeePaid != nil {
 				server.handleFeePaid(src, req.(*request.FeePaid), server.settings)
 			}
-		case types.ReqPatronInfo.ID():
+		case fields.ReqPatronInfo.ID():
 			if server.handlePatronInfo != nil {
 				server.handlePatronInfo(src, req.(*request.PatronInfo), server.settings)
 			}
-		case types.ReqRenewAll.ID():
+		case fields.ReqRenewAll.ID():
 			if server.handleRenewAll != nil {
 				server.handleRenewAll(src, req.(*request.RenewAll), server.settings)
 			}
-		case types.ReqSCLogin.ID():
+		case fields.ReqSCLogin.ID():
 			if server.handleSCLogin != nil {
 				server.handleSCLogin(src, req.(*request.SCLogin), server.settings)
 			}
-		case types.ReqACSResend.ID():
+		case fields.ReqACSResend.ID():
 			if server.handleACSResend != nil {
 				server.handleACSResend(src, req.(*request.ACSResend), server.settings)
 			}
-		case types.ReqSCStatus.ID():
+		case fields.ReqSCStatus.ID():
 			if server.handleSCStatus != nil {
 				server.handleSCStatus(src, req.(*request.SCStatus), server.settings)
 			}

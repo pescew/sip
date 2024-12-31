@@ -27,6 +27,6 @@ func (h HoldMode) String() string {
 	case "*":
 		return holdModes["*"]
 	default:
-		return holdModes["*"]
+		return "Unknown hold mode"
 	}
 }

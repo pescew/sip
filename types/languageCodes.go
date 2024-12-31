@@ -1,5 +1,7 @@
 package types
 
+import "fmt"
+
 type LanguageCode int
 
 const (
@@ -67,8 +69,10 @@ var languageCodes = [...]string{
 }
 
 func (l LanguageCode) ID() string {
-	if int(l) >= len(languageIDs) || l < 0 {
+	if l < 0 || l > 999 {
 		return languageIDs[0]
+	} else if int(l) >= len(languageIDs) {
+		return fmt.Sprintf("%03d", l)
 	}
 	return languageIDs[l]
 }

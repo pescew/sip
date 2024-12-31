@@ -7,22 +7,22 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
-var ErrInvalidRequest37 = fmt.Errorf("Invalid SIP %s request", types.ReqFeePaid.String())
+var ErrInvalidRequest37 = fmt.Errorf("Invalid SIP %s request", fields.ReqFeePaid.String())
 
 // This message can be used to notify the ACS that a fee has been collected from the patron. The ACS should record this information in their database and respond with a Fee Paid Response message.
 type FeePaid struct {
 	// Required:
-	TransactionDate time.Time `validate:"required"`
-	FeeType         int       `validate:"required,min=0,max=99"`
-	PaymentType     int       `validate:"required,min=0,max=99"`
-	CurrencyType    string    `validate:"required,sip,len=3"`
-	FeeAmount       string    `validate:"required,sip"`
-	InstitutionID   string    `validate:"sip"`
-	PatronID        string    `validate:"required,sip"`
+	TransactionDate time.Time          `validate:"required"`
+	FeeType         fields.FeeType     `validate:"required,min=1,max=99"`
+	PaymentType     fields.PaymentType `validate:"required,min=0,max=99"`
+	CurrencyType    string             `validate:"required,sip,len=3"`
+	FeeAmount       string             `validate:"required,sip"`
+	InstitutionID   string             `validate:"sip"`
+	PatronID        string             `validate:"required,sip"`
 
 	// Optional:
 	TerminalPassword string `validate:"sip"`
@@ -35,12 +35,12 @@ type FeePaid struct {
 
 func (fp *FeePaid) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
-	msg.WriteString(types.ReqFeePaid.ID())
+	msg.WriteString(fields.ReqFeePaid.ID())
 
 	msg.WriteString(fp.TransactionDate.Format(utils.SIPDateFormat))
 
-	fmt.Fprintf(&msg, "%02d", fp.FeeType)
-	fmt.Fprintf(&msg, "%02d", fp.PaymentType)
+	msg.WriteString(fp.FeeType.ID())
+	msg.WriteString(fp.PaymentType.ID())
 	msg.WriteString(fp.CurrencyType)
 	fmt.Fprintf(&msg, "BV%s%c", fp.FeeAmount, delimiter)
 	fmt.Fprintf(&msg, "AO%s%c", fp.InstitutionID, delimiter)
@@ -78,7 +78,7 @@ func (fp *FeePaid) Unmarshal(line string, delimiter, terminator rune) error {
 		return ErrInvalidRequest37
 	}
 
-	if string(runes[0:2]) != types.ReqFeePaid.ID() {
+	if string(runes[0:2]) != fields.ReqFeePaid.ID() {
 		return ErrInvalidRequest37
 	}
 
@@ -98,15 +98,17 @@ func (fp *FeePaid) Unmarshal(line string, delimiter, terminator rune) error {
 		return err
 	}
 
-	fp.FeeType, err = strconv.Atoi(string(runes[20:22]))
+	feeType, err := strconv.Atoi(string(runes[20:22]))
 	if err != nil {
 		return err
 	}
+	fp.FeeType = fields.FeeType(feeType)
 
-	fp.PaymentType, err = strconv.Atoi(string(runes[22:24]))
+	paymentType, err := strconv.Atoi(string(runes[22:24]))
 	if err != nil {
 		return err
 	}
+	fp.PaymentType = fields.PaymentType(paymentType)
 
 	fp.CurrencyType = string(runes[24:27])
 
@@ -130,7 +132,7 @@ func (fp *FeePaid) Unmarshal(line string, delimiter, terminator rune) error {
 func (fp *FeePaid) Validate() error {
 	err := Validate.Struct(fp)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.ReqFeePaid.String(), err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", fields.ReqFeePaid.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

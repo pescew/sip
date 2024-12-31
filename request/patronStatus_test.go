@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
@@ -20,7 +20,7 @@ func TestPatronStatus(t *testing.T) {
 	var reqParsed *PatronStatus
 	req := &PatronStatus{
 		// Required:
-		Language:         0,
+		Language:         fields.LanguageEnglish,
 		TransactionDate:  time.Now().UTC().Truncate(time.Second),
 		InstitutionID:    "inst",
 		PatronID:         "johndoe",
@@ -43,7 +43,7 @@ func TestPatronStatus(t *testing.T) {
 		t.Fatalf("Sequence Number mismatch")
 	}
 
-	if msgID != types.ReqPatronStatus.ID() {
+	if msgID != fields.ReqPatronStatus.ID() {
 		t.Fatalf("Message ID mismatch")
 	}
 

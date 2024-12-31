@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
-var ErrInvalidRequest19 = fmt.Errorf("Invalid SIP %s request", types.ReqItemStatusUpdate.String())
+var ErrInvalidRequest19 = fmt.Errorf("Invalid SIP %s request", fields.ReqItemStatusUpdate.String())
 
 // This message can be used to send item information to the ACS, without having to do a Checkout or Checkin operation. The item properties could be stored on the ACS’s database. The ACS should respond with an Item Status Update Response message.
 type ItemStatusUpdate struct {
@@ -31,7 +31,7 @@ type ItemStatusUpdate struct {
 
 func (isu *ItemStatusUpdate) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
-	msg.WriteString(types.ReqItemStatusUpdate.ID())
+	msg.WriteString(fields.ReqItemStatusUpdate.ID())
 
 	msg.WriteString(isu.TransactionDate.Format(utils.SIPDateFormat))
 
@@ -60,7 +60,7 @@ func (isu *ItemStatusUpdate) Unmarshal(line string, delimiter, terminator rune) 
 		return ErrInvalidRequest19
 	}
 
-	if string(runes[0:2]) != types.ReqItemStatusUpdate.ID() {
+	if string(runes[0:2]) != fields.ReqItemStatusUpdate.ID() {
 		return ErrInvalidRequest19
 	}
 
@@ -96,7 +96,7 @@ func (isu *ItemStatusUpdate) Unmarshal(line string, delimiter, terminator rune) 
 func (isu *ItemStatusUpdate) Validate() error {
 	err := Validate.Struct(isu)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.ReqItemStatusUpdate.String(), err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", fields.ReqItemStatusUpdate.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

@@ -8,11 +8,11 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
-var ErrInvalidRequest29 = fmt.Errorf("Invalid SIP %s request", types.ReqRenew.String())
+var ErrInvalidRequest29 = fmt.Errorf("Invalid SIP %s request", fields.ReqRenew.String())
 
 // This message is used to renew an item. The ACS should respond with a Renew Response message. Either or both of the “item identifier” and “title identifier” fields must be present for the message to be useful.
 type Renew struct {
@@ -37,7 +37,7 @@ type Renew struct {
 
 func (rn *Renew) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
-	msg.WriteString(types.ReqRenew.ID())
+	msg.WriteString(fields.ReqRenew.ID())
 
 	msg.WriteString(utils.YorN(rn.ThirdPartyAllowed))
 	msg.WriteString(utils.YorN(rn.NoBlock))
@@ -88,7 +88,7 @@ func (rn *Renew) Unmarshal(line string, delimiter, terminator rune) error {
 		return ErrInvalidRequest29
 	}
 
-	if string(runes[0:2]) != types.ReqRenew.ID() {
+	if string(runes[0:2]) != fields.ReqRenew.ID() {
 		return ErrInvalidRequest29
 	}
 
@@ -139,7 +139,7 @@ func (rn *Renew) Unmarshal(line string, delimiter, terminator rune) error {
 func (rn *Renew) Validate() error {
 	err := Validate.Struct(rn)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.ReqRenew.String(), err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", fields.ReqRenew.String(), err.(validator.ValidationErrors))
 	}
 
 	if rn.ItemID == "" && rn.TitleID == "" {

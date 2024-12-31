@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
@@ -25,37 +25,37 @@ func Unmarshal(line string, delimiter, terminator rune) (req Request, msgID stri
 	msgID = line[0:2]
 
 	switch msgID {
-	case types.ReqBlockPatron.ID():
+	case fields.ReqBlockPatron.ID():
 		req = &BlockPatron{}
-	case types.ReqCheckin.ID():
+	case fields.ReqCheckin.ID():
 		req = &Checkin{}
-	case types.ReqCheckout.ID():
+	case fields.ReqCheckout.ID():
 		req = &Checkout{}
-	case types.ReqHold.ID():
+	case fields.ReqHold.ID():
 		req = &Hold{}
-	case types.ReqItemInfo.ID():
+	case fields.ReqItemInfo.ID():
 		req = &ItemInfo{}
-	case types.ReqItemStatusUpdate.ID():
+	case fields.ReqItemStatusUpdate.ID():
 		req = &ItemStatusUpdate{}
-	case types.ReqPatronStatus.ID():
+	case fields.ReqPatronStatus.ID():
 		req = &PatronStatus{}
-	case types.ReqPatronEnable.ID():
+	case fields.ReqPatronEnable.ID():
 		req = &PatronEnable{}
-	case types.ReqRenew.ID():
+	case fields.ReqRenew.ID():
 		req = &Renew{}
-	case types.ReqEndPatronSession.ID():
+	case fields.ReqEndPatronSession.ID():
 		req = &EndPatronSession{}
-	case types.ReqFeePaid.ID():
+	case fields.ReqFeePaid.ID():
 		req = &FeePaid{}
-	case types.ReqPatronInfo.ID():
+	case fields.ReqPatronInfo.ID():
 		req = &PatronInfo{}
-	case types.ReqRenewAll.ID():
+	case fields.ReqRenewAll.ID():
 		req = &RenewAll{}
-	case types.ReqSCLogin.ID():
+	case fields.ReqSCLogin.ID():
 		req = &SCLogin{}
-	case types.ReqACSResend.ID():
+	case fields.ReqACSResend.ID():
 		req = &ACSResend{}
-	case types.ReqSCStatus.ID():
+	case fields.ReqSCStatus.ID():
 		req = &SCStatus{}
 	default:
 		return nil, msgID, ErrUnknownRequest

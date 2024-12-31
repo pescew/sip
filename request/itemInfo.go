@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
-var ErrInvalidRequest17 = fmt.Errorf("Invalid SIP %s request", types.ReqItemInfo.String())
+var ErrInvalidRequest17 = fmt.Errorf("Invalid SIP %s request", fields.ReqItemInfo.String())
 
 // This message may be used to request item information. The ACS should respond with the Item Information Response message.
 type ItemInfo struct {
@@ -28,7 +28,7 @@ type ItemInfo struct {
 
 func (ii *ItemInfo) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
-	msg.WriteString(types.ReqItemInfo.ID())
+	msg.WriteString(fields.ReqItemInfo.ID())
 
 	msg.WriteString(ii.TransactionDate.Format(utils.SIPDateFormat))
 
@@ -55,7 +55,7 @@ func (ii *ItemInfo) Unmarshal(line string, delimiter, terminator rune) error {
 		return ErrInvalidRequest17
 	}
 
-	if string(runes[0:2]) != types.ReqItemInfo.ID() {
+	if string(runes[0:2]) != fields.ReqItemInfo.ID() {
 		return ErrInvalidRequest17
 	}
 
@@ -90,7 +90,7 @@ func (ii *ItemInfo) Unmarshal(line string, delimiter, terminator rune) error {
 func (ii *ItemInfo) Validate() error {
 	err := Validate.Struct(ii)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.ReqItemInfo.String(), err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", fields.ReqItemInfo.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

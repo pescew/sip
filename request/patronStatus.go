@@ -7,30 +7,30 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
-var ErrInvalidRequest23 = fmt.Errorf("Invalid SIP %s request", types.ReqPatronStatus.String())
+var ErrInvalidRequest23 = fmt.Errorf("Invalid SIP %s request", fields.ReqPatronStatus.String())
 
 // This message is used by the SC to request patron information from the ACS. The ACS must respond to this command with a Patron Status Response message.
 type PatronStatus struct {
 	// Required:
-	Language         int       `validate:"min=0,max=999"`
-	TransactionDate  time.Time `validate:"required"`
-	InstitutionID    string    `validate:"sip"`
-	PatronID         string    `validate:"required,sip"`
-	TerminalPassword string    `validate:"sip"`
-	PatronPassword   string    `validate:"sip"`
+	Language         fields.LanguageCode `validate:"min=0,max=999"`
+	TransactionDate  time.Time           `validate:"required"`
+	InstitutionID    string              `validate:"sip"`
+	PatronID         string              `validate:"required,sip"`
+	TerminalPassword string              `validate:"sip"`
+	PatronPassword   string              `validate:"sip"`
 
 	SeqNum int `validate:"min=0,max=9"`
 }
 
 func (ps *PatronStatus) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
-	msg.WriteString(types.ReqPatronStatus.ID())
+	msg.WriteString(fields.ReqPatronStatus.ID())
 
-	fmt.Fprintf(&msg, "%03d", ps.Language)
+	msg.WriteString(ps.Language.ID())
 	msg.WriteString(ps.TransactionDate.Format(utils.SIPDateFormat))
 
 	fmt.Fprintf(&msg, "AO%s%c", ps.InstitutionID, delimiter)
@@ -55,7 +55,7 @@ func (ps *PatronStatus) Unmarshal(line string, delimiter, terminator rune) error
 		return ErrInvalidRequest23
 	}
 
-	if string(runes[0:2]) != types.ReqPatronStatus.ID() {
+	if string(runes[0:2]) != fields.ReqPatronStatus.ID() {
 		return ErrInvalidRequest23
 	}
 
@@ -70,10 +70,11 @@ func (ps *PatronStatus) Unmarshal(line string, delimiter, terminator rune) error
 		}
 	}
 
-	ps.Language, err = strconv.Atoi(string(runes[2:5]))
+	language, err := strconv.Atoi(string(runes[2:5]))
 	if err != nil {
 		return err
 	}
+	ps.Language = fields.LanguageCode(language)
 
 	ps.TransactionDate, err = time.Parse(utils.SIPDateFormat, string(runes[5:23]))
 	if err != nil {
@@ -96,7 +97,7 @@ func (ps *PatronStatus) Unmarshal(line string, delimiter, terminator rune) error
 func (ps *PatronStatus) Validate() error {
 	err := Validate.Struct(ps)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.ReqPatronStatus.String(), err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", fields.ReqPatronStatus.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

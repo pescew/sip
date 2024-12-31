@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
@@ -19,8 +19,8 @@ func TestSCLogin(t *testing.T) {
 	var reqParsed *SCLogin
 	req := &SCLogin{
 		// Required:
-		AlgorithmUserID:   0,
-		AlgorithmPassword: 0,
+		AlgorithmUserID:   fields.AlgorithmPlaintext,
+		AlgorithmPassword: fields.AlgorithmPlaintext,
 		LoginUserID:       "testUser",
 		LoginPassword:     "testPass",
 
@@ -43,7 +43,7 @@ func TestSCLogin(t *testing.T) {
 		t.Fatalf("Sequence Number mismatch")
 	}
 
-	if msgID != types.ReqSCLogin.ID() {
+	if msgID != fields.ReqSCLogin.ID() {
 		t.Fatalf("Message ID mismatch")
 	}
 

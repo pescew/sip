@@ -6,19 +6,19 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
-var ErrInvalidRequest93 = fmt.Errorf("Invalid SIP %s request", types.ReqSCLogin.String())
+var ErrInvalidRequest93 = fmt.Errorf("Invalid SIP %s request", fields.ReqSCLogin.String())
 
 // This message can be used to login to an ACS server program. The ACS should respond with the Login Response message. Whether to use this message or to use some other mechanism to login to the ACS is configurable on the SC. When this message is used, it will be the first message sent to the ACS.
 type SCLogin struct {
 	// Required:
-	AlgorithmUserID   int    `validate:"min=0,max=9"`
-	AlgorithmPassword int    `validate:"min=0,max=9"`
-	LoginUserID       string `validate:"required,sip"`
-	LoginPassword     string `validate:"sip"`
+	AlgorithmUserID   fields.Algorithm `validate:"min=0,max=9"`
+	AlgorithmPassword fields.Algorithm `validate:"min=0,max=9"`
+	LoginUserID       string           `validate:"required,sip"`
+	LoginPassword     string           `validate:"sip"`
 
 	// Optional:
 	LocationCode string `validate:"sip"`
@@ -28,10 +28,10 @@ type SCLogin struct {
 
 func (scl *SCLogin) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
-	msg.WriteString(types.ReqSCLogin.ID())
+	msg.WriteString(fields.ReqSCLogin.ID())
 
-	msg.WriteString(strconv.Itoa(scl.AlgorithmUserID))
-	msg.WriteString(strconv.Itoa(scl.AlgorithmPassword))
+	msg.WriteString(scl.AlgorithmUserID.ID())
+	msg.WriteString(scl.AlgorithmPassword.ID())
 
 	fmt.Fprintf(&msg, "CN%s%c", scl.LoginUserID, delimiter)
 	fmt.Fprintf(&msg, "CO%s%c", scl.LoginPassword, delimiter)
@@ -56,7 +56,7 @@ func (scl *SCLogin) Unmarshal(line string, delimiter, terminator rune) error {
 		return ErrInvalidRequest93
 	}
 
-	if string(runes[0:2]) != types.ReqSCLogin.ID() {
+	if string(runes[0:2]) != fields.ReqSCLogin.ID() {
 		return ErrInvalidRequest93
 	}
 
@@ -71,14 +71,18 @@ func (scl *SCLogin) Unmarshal(line string, delimiter, terminator rune) error {
 		}
 	}
 
-	scl.AlgorithmUserID, err = strconv.Atoi(string(runes[2]))
+	algoUserID, err := strconv.Atoi(string(runes[2]))
 	if err != nil {
 		return err
 	}
-	scl.AlgorithmPassword, err = strconv.Atoi(string(runes[3]))
+	scl.AlgorithmUserID = fields.Algorithm(algoUserID)
+
+	algoPwd, err := strconv.Atoi(string(runes[3]))
 	if err != nil {
 		return err
 	}
+	scl.AlgorithmPassword = fields.Algorithm(algoPwd)
+
 	scl.LoginUserID = codes["CN"]
 	scl.LoginPassword = codes["CO"]
 	scl.LocationCode = codes["CP"]
@@ -94,7 +98,7 @@ func (scl *SCLogin) Unmarshal(line string, delimiter, terminator rune) error {
 func (scl *SCLogin) Validate() error {
 	err := Validate.Struct(scl)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.ReqSCLogin.String(), err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", fields.ReqSCLogin.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

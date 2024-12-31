@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
@@ -45,7 +45,7 @@ func TestRenewAll(t *testing.T) {
 		t.Fatalf("Sequence Number mismatch")
 	}
 
-	if msgID != types.ReqRenewAll.ID() {
+	if msgID != fields.ReqRenewAll.ID() {
 		t.Fatalf("Message ID mismatch")
 	}
 

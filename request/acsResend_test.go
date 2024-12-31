@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
@@ -28,7 +28,7 @@ func TestACSResend(t *testing.T) {
 
 	reqParsed = parsed.(*ACSResend)
 
-	if msgID != types.ReqACSResend.ID() {
+	if msgID != fields.ReqACSResend.ID() {
 		t.Fatalf("Message ID mismatch")
 	}
 

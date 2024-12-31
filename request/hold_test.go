@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
@@ -20,13 +20,13 @@ func TestHold(t *testing.T) {
 	var reqParsed *Hold
 	req := &Hold{
 		// Required:
-		HoldMode:        "+",
+		HoldMode:        fields.HoldModeAdd,
 		TransactionDate: time.Now().UTC().Truncate(time.Second),
 
 		// Optional:
 		ExpirationDate: time.Now().UTC().Truncate(time.Second),
 		PickupLocation: "lib",
-		HoldType:       3,
+		HoldType:       fields.HoldTypeAny,
 
 		// Required:
 		InstitutionID: "inst",
@@ -55,7 +55,7 @@ func TestHold(t *testing.T) {
 		t.Fatalf("Sequence Number mismatch")
 	}
 
-	if msgID != types.ReqHold.ID() {
+	if msgID != fields.ReqHold.ID() {
 		t.Fatalf("Message ID mismatch")
 	}
 

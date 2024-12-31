@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
-var ErrInvalidRequest01 = fmt.Errorf("Invalid SIP %s", types.ReqBlockPatron.String())
+var ErrInvalidRequest01 = fmt.Errorf("Invalid SIP %s", fields.ReqBlockPatron.String())
 
 // This message requests that the patron card be blocked by the ACS. This is, for example, sent when the patron is detected tampering with the SC or when a patron forgets to take their card. The ACS should invalidate the patron’s card and respond with a Patron Status Response message. The ACS could also notify the library staff that the card has been blocked.
 type BlockPatron struct {
@@ -28,7 +28,7 @@ type BlockPatron struct {
 
 func (bp *BlockPatron) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
-	msg.WriteString(types.ReqBlockPatron.ID())
+	msg.WriteString(fields.ReqBlockPatron.ID())
 
 	msg.WriteString(utils.YorN(bp.CardRetained))
 
@@ -56,7 +56,7 @@ func (bp *BlockPatron) Unmarshal(line string, delimiter, terminator rune) error 
 		return ErrInvalidRequest01
 	}
 
-	if string(runes[0:2]) != types.ReqBlockPatron.ID() {
+	if string(runes[0:2]) != fields.ReqBlockPatron.ID() {
 		return ErrInvalidRequest01
 	}
 
@@ -94,7 +94,7 @@ func (bp *BlockPatron) Unmarshal(line string, delimiter, terminator rune) error 
 func (bp *BlockPatron) Validate() error {
 	err := Validate.Struct(bp)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.ReqBlockPatron.String(), err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", fields.ReqBlockPatron.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

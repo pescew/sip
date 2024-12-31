@@ -8,22 +8,22 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
-var ErrInvalidRequest15 = fmt.Errorf("Invalid SIP %s request", types.ReqHold.String())
+var ErrInvalidRequest15 = fmt.Errorf("Invalid SIP %s request", fields.ReqHold.String())
 
 // This message is used to create, modify, or delete a hold. The ACS should respond with a Hold Response message. Either or both of the “item identifier” and “title identifier” fields must be present for the message to be useful.
 type Hold struct {
 	// Required:
-	HoldMode        string    `validate:"required,len=1,oneof=+ - *"`
-	TransactionDate time.Time `validate:"required"`
+	HoldMode        fields.HoldMode `validate:"required,len=1,oneof=+ - *"`
+	TransactionDate time.Time       `validate:"required"`
 
 	// Optional:
 	ExpirationDate time.Time
-	PickupLocation string `validate:"sip"`
-	HoldType       int    `validate:"min=0,max=9"`
+	PickupLocation string          `validate:"sip"`
+	HoldType       fields.HoldType `validate:"min=0,max=9"`
 
 	// Required:
 	InstitutionID string `validate:"sip"`
@@ -41,9 +41,9 @@ type Hold struct {
 
 func (h *Hold) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
-	msg.WriteString(types.ReqHold.ID())
+	msg.WriteString(fields.ReqHold.ID())
 
-	msg.WriteString(h.HoldMode)
+	msg.WriteString(h.HoldMode.ID())
 
 	msg.WriteString(h.TransactionDate.Format(utils.SIPDateFormat))
 
@@ -56,7 +56,7 @@ func (h *Hold) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	}
 
 	if h.HoldType > 0 {
-		fmt.Fprintf(&msg, "BY%s%c", strconv.Itoa(h.HoldType), delimiter)
+		fmt.Fprintf(&msg, "BY%s%c", h.HoldType.ID(), delimiter)
 	}
 
 	fmt.Fprintf(&msg, "AO%s%c", h.InstitutionID, delimiter)
@@ -98,7 +98,7 @@ func (h *Hold) Unmarshal(line string, delimiter, terminator rune) error {
 		return ErrInvalidRequest15
 	}
 
-	if string(runes[0:2]) != types.ReqHold.ID() {
+	if string(runes[0:2]) != fields.ReqHold.ID() {
 		return ErrInvalidRequest15
 	}
 
@@ -113,7 +113,7 @@ func (h *Hold) Unmarshal(line string, delimiter, terminator rune) error {
 		}
 	}
 
-	h.HoldMode = string(runes[2])
+	h.HoldMode = fields.HoldMode(string(runes[2]))
 
 	h.TransactionDate, err = time.Parse(utils.SIPDateFormat, string(runes[3:21]))
 	if err != nil {
@@ -129,10 +129,11 @@ func (h *Hold) Unmarshal(line string, delimiter, terminator rune) error {
 
 	h.PickupLocation = codes["BS"]
 	if codes["BY"] != "" {
-		h.HoldType, err = strconv.Atoi(codes["BY"])
+		holdType, err := strconv.Atoi(codes["BY"])
 		if err != nil {
 			return err
 		}
+		h.HoldType = fields.HoldType(holdType)
 	}
 
 	h.InstitutionID = codes["AO"]
@@ -158,7 +159,7 @@ func (h *Hold) Unmarshal(line string, delimiter, terminator rune) error {
 func (h *Hold) Validate() error {
 	err := Validate.Struct(h)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.ReqHold.String(), err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", fields.ReqHold.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

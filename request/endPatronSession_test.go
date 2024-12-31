@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
@@ -44,7 +44,7 @@ func TestEndPatronSession(t *testing.T) {
 		t.Fatalf("Sequence Number mismatch")
 	}
 
-	if msgID != types.ReqEndPatronSession.ID() {
+	if msgID != fields.ReqEndPatronSession.ID() {
 		t.Fatalf("Message ID mismatch")
 	}
 

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
@@ -19,9 +19,9 @@ func TestSCStatus(t *testing.T) {
 	var reqParsed *SCStatus
 	req := &SCStatus{
 		// Required:
-		StatusCode:      1,
+		StatusCode:      fields.SCStatusOK,
 		MaxPrintWidth:   30,
-		ProtocolVersion: "2.00",
+		ProtocolVersion: fields.ProtocolVersion2,
 
 		SeqNum: 3,
 	}
@@ -39,7 +39,7 @@ func TestSCStatus(t *testing.T) {
 		t.Fatalf("Sequence Number mismatch: %d != %d", reqParsed.SeqNum, 3)
 	}
 
-	if msgID != types.ReqSCStatus.ID() {
+	if msgID != fields.ReqSCStatus.ID() {
 		t.Fatalf("Message ID mismatch")
 	}
 

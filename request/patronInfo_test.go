@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/pescew/sip/fields"
-	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
@@ -21,7 +20,7 @@ func TestPatronInfo(t *testing.T) {
 	var reqParsed *PatronInfo
 	req := &PatronInfo{
 		// Required:
-		Language:        0,
+		Language:        fields.LanguageEnglish,
 		TransactionDate: time.Now().UTC().Truncate(time.Second),
 		Summary: fields.Summary{
 			HoldItems:        true,
@@ -56,7 +55,7 @@ func TestPatronInfo(t *testing.T) {
 		t.Fatalf("Sequence Number mismatch")
 	}
 
-	if msgID != types.ReqPatronInfo.ID() {
+	if msgID != fields.ReqPatronInfo.ID() {
 		t.Fatalf("Message ID mismatch")
 	}
 

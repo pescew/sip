@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
@@ -21,8 +21,8 @@ func TestFeePaid(t *testing.T) {
 	req := &FeePaid{
 		// Required:
 		TransactionDate: time.Now().UTC().Truncate(time.Second),
-		FeeType:         4,
-		PaymentType:     2,
+		FeeType:         fields.OverdueFee,
+		PaymentType:     fields.PaymentTypeCash,
 		CurrencyType:    "USD",
 		FeeAmount:       "50.00",
 		InstitutionID:   "inst",
@@ -50,7 +50,7 @@ func TestFeePaid(t *testing.T) {
 		t.Fatalf("Sequence Number mismatch")
 	}
 
-	if msgID != types.ReqFeePaid.ID() {
+	if msgID != fields.ReqFeePaid.ID() {
 		t.Fatalf("Message ID mismatch")
 	}
 

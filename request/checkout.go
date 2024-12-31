@@ -8,11 +8,11 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
-var ErrInvalidRequest11 = fmt.Errorf("Invalid SIP %s request", types.ReqCheckout.String())
+var ErrInvalidRequest11 = fmt.Errorf("Invalid SIP %s request", fields.ReqCheckout.String())
 
 // This message is used by the SC to request to check out an item, and also to cancel a Checkin request that did not successfully complete. The ACS must respond to this command with a Checkout Response message.
 type Checkout struct {
@@ -37,7 +37,7 @@ type Checkout struct {
 
 func (co *Checkout) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
-	msg.WriteString(types.ReqCheckout.ID())
+	msg.WriteString(fields.ReqCheckout.ID())
 
 	msg.WriteString(utils.YorN(co.SCRenewalPolicy))
 	msg.WriteString(utils.YorN(co.NoBlock))
@@ -82,7 +82,7 @@ func (co *Checkout) Unmarshal(line string, delimiter, terminator rune) error {
 		return ErrInvalidRequest11
 	}
 
-	if string(runes[0:2]) != types.ReqCheckout.ID() {
+	if string(runes[0:2]) != fields.ReqCheckout.ID() {
 		return ErrInvalidRequest11
 	}
 
@@ -137,7 +137,7 @@ func (co *Checkout) Unmarshal(line string, delimiter, terminator rune) error {
 func (co *Checkout) Validate() error {
 	err := Validate.Struct(co)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.ReqCheckout.String(), err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", fields.ReqCheckout.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

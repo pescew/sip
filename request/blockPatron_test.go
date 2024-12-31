@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
@@ -43,7 +43,7 @@ func TestBlockPatron(t *testing.T) {
 		t.Fatalf("Sequence Number mismatch")
 	}
 
-	if msgID != types.ReqBlockPatron.ID() {
+	if msgID != fields.ReqBlockPatron.ID() {
 		t.Fatalf("Message ID mismatch")
 	}
 

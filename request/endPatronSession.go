@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
-var ErrInvalidRequest35 = fmt.Errorf("Invalid SIP %s request", types.ReqEndPatronSession.String())
+var ErrInvalidRequest35 = fmt.Errorf("Invalid SIP %s request", fields.ReqEndPatronSession.String())
 
 // This message will be sent when a patron has completed all of their transactions. The ACS may, upon receipt of this command, close any open files or deallocate data structures pertaining to that patron. The ACS should respond with an End Session Response message.
 type EndPatronSession struct {
@@ -29,7 +29,7 @@ type EndPatronSession struct {
 
 func (eps *EndPatronSession) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
-	msg.WriteString(types.ReqEndPatronSession.ID())
+	msg.WriteString(fields.ReqEndPatronSession.ID())
 
 	msg.WriteString(eps.TransactionDate.Format(utils.SIPDateFormat))
 
@@ -60,7 +60,7 @@ func (eps *EndPatronSession) Unmarshal(line string, delimiter, terminator rune) 
 		return ErrInvalidRequest35
 	}
 
-	if string(runes[0:2]) != types.ReqEndPatronSession.ID() {
+	if string(runes[0:2]) != fields.ReqEndPatronSession.ID() {
 		return ErrInvalidRequest35
 	}
 
@@ -96,7 +96,7 @@ func (eps *EndPatronSession) Unmarshal(line string, delimiter, terminator rune) 
 func (eps *EndPatronSession) Validate() error {
 	err := Validate.Struct(eps)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.ReqEndPatronSession.String(), err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", fields.ReqEndPatronSession.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

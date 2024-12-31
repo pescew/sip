@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
-var ErrInvalidRequest25 = fmt.Errorf("Invalid SIP %s request", types.ReqPatronEnable.String())
+var ErrInvalidRequest25 = fmt.Errorf("Invalid SIP %s request", fields.ReqPatronEnable.String())
 
 // This message can be used by the SC to re-enable canceled patrons. It should only be used for system testing and validation. The ACS should respond with a Patron Enable Response message.
 type PatronEnable struct {
@@ -29,7 +29,7 @@ type PatronEnable struct {
 
 func (pe *PatronEnable) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
-	msg.WriteString(types.ReqPatronEnable.ID())
+	msg.WriteString(fields.ReqPatronEnable.ID())
 
 	msg.WriteString(pe.TransactionDate.Format(utils.SIPDateFormat))
 
@@ -60,7 +60,7 @@ func (pe *PatronEnable) Unmarshal(line string, delimiter, terminator rune) error
 		return ErrInvalidRequest25
 	}
 
-	if string(runes[0:2]) != types.ReqPatronEnable.ID() {
+	if string(runes[0:2]) != fields.ReqPatronEnable.ID() {
 		return ErrInvalidRequest25
 	}
 
@@ -96,7 +96,7 @@ func (pe *PatronEnable) Unmarshal(line string, delimiter, terminator rune) error
 func (pe *PatronEnable) Validate() error {
 	err := Validate.Struct(pe)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.ReqPatronEnable.String(), err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", fields.ReqPatronEnable.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

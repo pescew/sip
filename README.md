@@ -59,10 +59,10 @@ func handleSCLogin(conn *net.TCPConn, r *request.SCLogin, s server.Settings) {
 func handleSCStatus(conn *net.TCPConn, r *request.SCStatus, s server.Settings) {
 	resp := response.ACSStatus{
 		OnlineStatus:    true,
-		TimeoutPeriod:   100,
+		TimeoutPeriod:   30,
 		RetriesAllowed:  5,
 		DateTimeSync:    time.Now(),
-		ProtocolVersion: "2.00",
+		ProtocolVersion: fields.ProtocolVersion2,
 		InstitutionID:   s.InstitutionID(),
 		LibraryName:     s.LibraryID(),
 		SupportedMessages: fields.SupportedMessages{
@@ -85,8 +85,7 @@ func handlePatronInfo(conn *net.TCPConn, r *request.PatronInfo, s server.Setting
 	var resp *response.PatronInfo
 	if strings.ToLower(r.PatronID) == "user" && r.PatronPassword == "pass" {
 		resp = &response.PatronInfo{
-			PatronStatus:          fields.PatronStatus{},
-			Language:              1,
+			Language:              fields.LanguageEnglish,
 			TransactionDate:       time.Now(),
 			HoldItemsCount:        2,
 			OverdueItemsCount:     0,
@@ -114,20 +113,10 @@ func handlePatronInfo(conn *net.TCPConn, r *request.PatronInfo, s server.Setting
 
 func BadPassword() *response.PatronInfo {
 	return &response.PatronInfo{
-		PatronStatus:          fields.PatronStatus{},
-		Language:              0,
-		TransactionDate:       time.Now(),
-		HoldItemsCount:        0,
-		OverdueItemsCount:     0,
-		ChargedItemsCount:     0,
-		FineItemsCount:        0,
-		RecallItemsCount:      0,
-		UnavailableHoldsCount: 0,
-		InstitutionID:         "",
-		PatronID:              "",
-		PatronName:            "",
-		ValidPatron:           false,
-		ValidPatronPassword:   false,
+		Language:            fields.LanguageEnglish,
+		TransactionDate:     time.Now(),
+		ValidPatron:         false,
+		ValidPatronPassword: false,
 	}
 }
 ```

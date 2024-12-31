@@ -119,10 +119,12 @@ func (server *Server) handleConnection(src *net.TCPConn) {
 		}
 	}
 
-	err := scanner.Err()
-	if err != nil {
-		log.Printf(fmt.Sprintf("Invalid scanner input: %s", err.Error()))
-	}
+	// err := scanner.Err()
+	// if err != nil {
+	// 	log.Printf(fmt.Sprintf("Invalid scanner input: %s", err.Error()))
+	// }
+
+	log.Printf(fmt.Sprintf("Connection closed: %s", src.RemoteAddr().String()))
 
 }
 

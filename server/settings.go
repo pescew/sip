@@ -17,11 +17,11 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		Host:                "127.0.0.1",
-		Port:                9000,
+		Port:                6001,
 		DebugMode:           false,
 		LibraryID:           "lib",
 		InstitutionID:       "inst",
-		TerminalUsername:    "",
+		TerminalUsername:    "selfcheck-user",
 		TerminalPassword:    "",
 		TerminatorCharacter: '\r',
 		DelimiterCharacter:  '|',

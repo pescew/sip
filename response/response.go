@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
@@ -25,35 +25,35 @@ func Unmarshal(line string, delimiter, terminator rune) (resp Response, msgID st
 	msgID = line[0:2]
 
 	switch msgID {
-	case types.RespCheckin.ID():
+	case fields.RespCheckin.ID():
 		resp = &Checkin{}
-	case types.RespCheckout.ID():
+	case fields.RespCheckout.ID():
 		resp = &Checkout{}
-	case types.RespHold.ID():
+	case fields.RespHold.ID():
 		resp = &Hold{}
-	case types.RespItemInfo.ID():
+	case fields.RespItemInfo.ID():
 		resp = &ItemInfo{}
-	case types.RespItemStatusUpdate.ID():
+	case fields.RespItemStatusUpdate.ID():
 		resp = &ItemStatusUpdate{}
-	case types.RespPatronStatus.ID():
+	case fields.RespPatronStatus.ID():
 		resp = &PatronStatus{}
-	case types.RespPatronEnable.ID():
+	case fields.RespPatronEnable.ID():
 		resp = &PatronEnable{}
-	case types.RespRenew.ID():
+	case fields.RespRenew.ID():
 		resp = &Renew{}
-	case types.RespEndSession.ID():
+	case fields.RespEndSession.ID():
 		resp = &EndSession{}
-	case types.RespFeePaid.ID():
+	case fields.RespFeePaid.ID():
 		resp = &FeePaid{}
-	case types.RespPatronInfo.ID():
+	case fields.RespPatronInfo.ID():
 		resp = &PatronInfo{}
-	case types.RespRenewAll.ID():
+	case fields.RespRenewAll.ID():
 		resp = &RenewAll{}
-	case types.RespSCLogin.ID():
+	case fields.RespSCLogin.ID():
 		resp = &SCLogin{}
-	case types.RespSCResend.ID():
+	case fields.RespSCResend.ID():
 		resp = &SCResend{}
-	case types.RespACSStatus.ID():
+	case fields.RespACSStatus.ID():
 		resp = &ACSStatus{}
 	default:
 		return nil, msgID, ErrUnknownResponse

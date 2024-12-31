@@ -9,17 +9,16 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/pescew/sip/fields"
-	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
-var ErrInvalidResponse64 = fmt.Errorf("Invalid SIP %s", types.RespPatronInfo.String())
+var ErrInvalidResponse64 = fmt.Errorf("Invalid SIP %s", fields.RespPatronInfo.String())
 
 // The ACS must send this message in response to the Patron Information message.
 type PatronInfo struct {
 	// Required Fields:
 	PatronStatus          fields.PatronStatus `validate:"required"`
-	Language              int                 `validate:"min=0,max=999"`
+	Language              fields.LanguageCode `validate:"min=0,max=999"`
 	TransactionDate       time.Time           `validate:"required"`
 	HoldItemsCount        int                 `validate:"min=0,max=9999"`
 	OverdueItemsCount     int                 `validate:"min=0,max=9999"`
@@ -58,10 +57,10 @@ type PatronInfo struct {
 func (pi *PatronInfo) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
 
-	msg.WriteString(types.RespPatronInfo.ID())
+	msg.WriteString(fields.RespPatronInfo.ID())
 	msg.WriteString(pi.PatronStatus.Marshal())
 
-	fmt.Fprintf(&msg, "%03d", pi.Language)
+	msg.WriteString(pi.Language.ID())
 	msg.WriteString(pi.TransactionDate.Format(utils.SIPDateFormat))
 	fmt.Fprintf(&msg, "%04d", pi.HoldItemsCount)
 	fmt.Fprintf(&msg, "%04d", pi.OverdueItemsCount)
@@ -170,7 +169,7 @@ func (pi *PatronInfo) Unmarshal(line string, delimiter, terminator rune) error {
 		return ErrInvalidResponse64
 	}
 
-	if string(runes[0:2]) != types.RespPatronInfo.ID() {
+	if string(runes[0:2]) != fields.RespPatronInfo.ID() {
 		return ErrInvalidResponse64
 	}
 
@@ -192,10 +191,11 @@ func (pi *PatronInfo) Unmarshal(line string, delimiter, terminator rune) error {
 		return err
 	}
 
-	pi.Language, err = strconv.Atoi(string(runes[16:19]))
+	language, err := strconv.Atoi(string(runes[16:19]))
 	if err != nil {
 		return err
 	}
+	pi.Language = fields.LanguageCode(language)
 
 	pi.TransactionDate, err = time.Parse(utils.SIPDateFormat, string(runes[19:37]))
 	if err != nil {
@@ -295,12 +295,12 @@ func (pi *PatronInfo) Unmarshal(line string, delimiter, terminator rune) error {
 
 func (pi *PatronInfo) Validate() error {
 	if pi.CurrencyType != "" && utf8.RuneCountInString(pi.CurrencyType) != 3 {
-		return fmt.Errorf("invalid SIP %s did not pass validation: CurrencyType must be 3 chars", types.RespPatronInfo.String())
+		return fmt.Errorf("invalid SIP %s did not pass validation: CurrencyType must be 3 chars", fields.RespPatronInfo.String())
 	}
 
 	err := Validate.Struct(pi)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.RespPatronInfo.String(), err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", fields.RespPatronInfo.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

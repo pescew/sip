@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
-var ErrInvalidResponse66 = fmt.Errorf("Invalid SIP %s", types.RespRenewAll.String())
+var ErrInvalidResponse66 = fmt.Errorf("Invalid SIP %s", fields.RespRenewAll.String())
 
 // The ACS should send this message in response to a Renew All message from the SC.
 type RenewAll struct {
@@ -34,7 +34,7 @@ type RenewAll struct {
 func (ra *RenewAll) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
 
-	msg.WriteString(types.RespRenewAll.ID())
+	msg.WriteString(fields.RespRenewAll.ID())
 
 	msg.WriteString(utils.ZeroOrOne(ra.Ok))
 
@@ -81,7 +81,7 @@ func (ra *RenewAll) Unmarshal(line string, delimiter, terminator rune) error {
 		return ErrInvalidResponse66
 	}
 
-	if string(runes[0:2]) != types.RespRenewAll.ID() {
+	if string(runes[0:2]) != fields.RespRenewAll.ID() {
 		return ErrInvalidResponse66
 	}
 
@@ -139,7 +139,7 @@ func (ra *RenewAll) Unmarshal(line string, delimiter, terminator rune) error {
 func (ra *RenewAll) Validate() error {
 	err := Validate.Struct(ra)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.RespRenewAll.String(), err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", fields.RespRenewAll.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/pescew/sip/fields"
-	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
@@ -30,7 +29,7 @@ func TestACSStatus(t *testing.T) {
 		TimeoutPeriod:   744,
 		RetriesAllowed:  45,
 		DateTimeSync:    time.Now().UTC().Truncate(time.Second),
-		ProtocolVersion: "2.00",
+		ProtocolVersion: fields.ProtocolVersion2,
 		InstitutionID:   "inst",
 
 		// Optional:
@@ -77,7 +76,7 @@ func TestACSStatus(t *testing.T) {
 		t.Fatalf("Sequence Number mismatch")
 	}
 
-	if msgID != types.RespACSStatus.ID() {
+	if msgID != fields.RespACSStatus.ID() {
 		t.Fatalf("Message ID mismatch")
 	}
 

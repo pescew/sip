@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
-var ErrInvalidResponse20 = fmt.Errorf("Invalid SIP %s", types.RespItemStatusUpdate.String())
+var ErrInvalidResponse20 = fmt.Errorf("Invalid SIP %s", fields.RespItemStatusUpdate.String())
 
 // The ACS must send this message in response to the Item Status Update message.
 type ItemStatusUpdate struct {
@@ -32,7 +32,7 @@ type ItemStatusUpdate struct {
 func (isu *ItemStatusUpdate) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
 
-	msg.WriteString(types.RespItemStatusUpdate.ID())
+	msg.WriteString(fields.RespItemStatusUpdate.ID())
 
 	msg.WriteString(utils.ZeroOrOne(isu.ItemPropertiesOk))
 	msg.WriteString(isu.TransactionDate.Format(utils.SIPDateFormat))
@@ -70,7 +70,7 @@ func (isu *ItemStatusUpdate) Unmarshal(line string, delimiter, terminator rune) 
 		return ErrInvalidResponse20
 	}
 
-	if string(runes[0:2]) != types.RespItemStatusUpdate.ID() {
+	if string(runes[0:2]) != fields.RespItemStatusUpdate.ID() {
 		return ErrInvalidResponse20
 	}
 
@@ -110,7 +110,7 @@ func (isu *ItemStatusUpdate) Unmarshal(line string, delimiter, terminator rune) 
 func (isu *ItemStatusUpdate) Validate() error {
 	err := Validate.Struct(isu)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.RespItemStatusUpdate.String(), err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", fields.RespItemStatusUpdate.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

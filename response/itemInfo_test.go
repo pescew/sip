@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
@@ -20,9 +20,9 @@ func TestItemInfo(t *testing.T) {
 	var respParsed *ItemInfo
 	resp := &ItemInfo{
 		// Required Fields:
-		CirculationStatus: 28,
-		SecurityMarker:    83,
-		FeeType:           12,
+		CirculationStatus: fields.CircStatusAvailable,
+		SecurityMarker:    fields.SecurityMarkerNone,
+		FeeType:           fields.OverdueFee,
 		TransactionDate:   time.Now().UTC().Truncate(time.Second),
 
 		// Optional Fields:
@@ -39,7 +39,7 @@ func TestItemInfo(t *testing.T) {
 		Owner:             "lib",
 		CurrencyType:      "USD",
 		FeeAmount:         "50.00",
-		MediaType:         "005",
+		MediaType:         fields.MediaTypeBook,
 		PermanentLocation: "lib1",
 		CurrentLocation:   "lib2",
 		ItemProperties:    "props",
@@ -62,7 +62,7 @@ func TestItemInfo(t *testing.T) {
 		t.Fatalf("Sequence Number mismatch")
 	}
 
-	if msgID != types.RespItemInfo.ID() {
+	if msgID != fields.RespItemInfo.ID() {
 		t.Fatalf("Message ID mismatch")
 	}
 

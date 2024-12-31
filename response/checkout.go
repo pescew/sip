@@ -8,11 +8,11 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
-var ErrInvalidResponse12 = fmt.Errorf("Invalid SIP %s", types.RespCheckout.String())
+var ErrInvalidResponse12 = fmt.Errorf("Invalid SIP %s", fields.RespCheckout.String())
 
 // This message must be sent by the ACS in response to a Checkout message from the SC.
 type Checkout struct {
@@ -29,15 +29,15 @@ type Checkout struct {
 	DueDate         string    `validate:"required,sip"`
 
 	// Optional Fields:
-	FeeType         int `validate:"min=0,max=99"`
+	FeeType         fields.FeeType `validate:"min=0,max=99"`
 	SecurityInhibit bool
-	CurrencyType    string `validate:"sip,max=3"`
-	FeeAmount       string `validate:"sip"`
-	MediaType       string `validate:"sip,max=3"`
-	ItemProperties  string `validate:"sip"`
-	TransactionID   string `validate:"sip"`
-	ScreenMessage   string `validate:"sip"`
-	PrintLine       string `validate:"sip"`
+	CurrencyType    string           `validate:"sip,max=3"`
+	FeeAmount       string           `validate:"sip"`
+	MediaType       fields.MediaType `validate:"sip,max=3"`
+	ItemProperties  string           `validate:"sip"`
+	TransactionID   string           `validate:"sip"`
+	ScreenMessage   string           `validate:"sip"`
+	PrintLine       string           `validate:"sip"`
 
 	SeqNum int `validate:"min=0,max=9"`
 }
@@ -45,7 +45,7 @@ type Checkout struct {
 func (co *Checkout) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
 
-	msg.WriteString(types.RespCheckout.ID())
+	msg.WriteString(fields.RespCheckout.ID())
 	msg.WriteString(utils.ZeroOrOne(co.Ok))
 	msg.WriteString(utils.YorN(co.RenewalOk))
 	msg.WriteString(utils.YorN(co.MagneticMedia))
@@ -58,7 +58,7 @@ func (co *Checkout) Marshal(delimiter, terminator rune, errorDetection bool) str
 	fmt.Fprintf(&msg, "AH%s%c", co.DueDate, delimiter)
 
 	if co.FeeType > 0 {
-		fmt.Fprintf(&msg, "BT%02d%c", co.FeeType, delimiter)
+		fmt.Fprintf(&msg, "BT%s%c", co.FeeType.ID(), delimiter)
 	}
 
 	fmt.Fprintf(&msg, "CI%s%c", utils.YorN(co.SecurityInhibit), delimiter)
@@ -71,8 +71,8 @@ func (co *Checkout) Marshal(delimiter, terminator rune, errorDetection bool) str
 		fmt.Fprintf(&msg, "BV%s%c", co.FeeAmount, delimiter)
 	}
 
-	if utf8.RuneCountInString(co.MediaType) == 3 {
-		fmt.Fprintf(&msg, "CK%s%c", co.MediaType, delimiter)
+	if utf8.RuneCountInString(co.MediaType.ID()) == 3 {
+		fmt.Fprintf(&msg, "CK%s%c", co.MediaType.ID(), delimiter)
 	}
 
 	if co.ItemProperties != "" {
@@ -107,7 +107,7 @@ func (co *Checkout) Unmarshal(line string, delimiter, terminator rune) error {
 		return ErrInvalidResponse12
 	}
 
-	if string(runes[0:2]) != types.RespCheckout.ID() {
+	if string(runes[0:2]) != fields.RespCheckout.ID() {
 		return ErrInvalidResponse12
 	}
 
@@ -139,10 +139,11 @@ func (co *Checkout) Unmarshal(line string, delimiter, terminator rune) error {
 	co.DueDate = codes["AH"]
 
 	if codes["BT"] != "" {
-		co.FeeType, err = strconv.Atoi(codes["BT"])
+		feeType, err := strconv.Atoi(codes["BT"])
 		if err != nil {
 			return err
 		}
+		co.FeeType = fields.FeeType(feeType)
 	}
 
 	if codes["CI"] != "" {
@@ -156,7 +157,7 @@ func (co *Checkout) Unmarshal(line string, delimiter, terminator rune) error {
 	co.FeeAmount = codes["BV"]
 
 	if utf8.RuneCountInString(codes["CK"]) == 3 {
-		co.MediaType = codes["CK"]
+		co.MediaType = fields.MediaType(codes["CK"])
 	}
 
 	co.ItemProperties = codes["CH"]
@@ -174,16 +175,16 @@ func (co *Checkout) Unmarshal(line string, delimiter, terminator rune) error {
 
 func (co *Checkout) Validate() error {
 	if co.CurrencyType != "" && utf8.RuneCountInString(co.CurrencyType) != 3 {
-		return fmt.Errorf("invalid SIP %s did not pass validation: CurrencyType must be 3 chars", types.RespCheckout.String())
+		return fmt.Errorf("invalid SIP %s did not pass validation: CurrencyType must be 3 chars", fields.RespCheckout.String())
 	}
 
-	if co.MediaType != "" && utf8.RuneCountInString(co.MediaType) != 3 {
-		return fmt.Errorf("invalid SIP %s did not pass validation: MediaType must be 3 chars", types.RespCheckout.String())
+	if co.MediaType.ID() != "" && utf8.RuneCountInString(co.MediaType.ID()) != 3 {
+		return fmt.Errorf("invalid SIP %s did not pass validation: MediaType must be 3 chars", fields.RespCheckout.String())
 	}
 
 	err := Validate.Struct(co)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.RespCheckout.String(), err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", fields.RespCheckout.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

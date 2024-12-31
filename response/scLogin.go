@@ -6,11 +6,11 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
-var ErrInvalidResponse94 = fmt.Errorf("Invalid SIP %s response", types.RespSCLogin.String())
+var ErrInvalidResponse94 = fmt.Errorf("Invalid SIP %s response", fields.RespSCLogin.String())
 
 // The ACS should send this message in response to the Login message. When this message is used, it will be the first message sent to the SC.
 type SCLogin struct {
@@ -23,12 +23,12 @@ type SCLogin struct {
 func (scl *SCLogin) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	if errorDetection {
 		var msg strings.Builder
-		fmt.Fprintf(&msg, "%s%sAY%dAZ", types.RespSCLogin.ID(), utils.ZeroOrOne(scl.Ok), scl.SeqNum)
+		fmt.Fprintf(&msg, "%s%sAY%dAZ", fields.RespSCLogin.ID(), utils.ZeroOrOne(scl.Ok), scl.SeqNum)
 		msg.WriteString(utils.ComputeChecksum(msg.String()))
 		msg.WriteRune(terminator)
 		return msg.String()
 	}
-	return fmt.Sprintf("%s%s%c", types.RespSCLogin.ID(), utils.ZeroOrOne(scl.Ok), terminator)
+	return fmt.Sprintf("%s%s%c", fields.RespSCLogin.ID(), utils.ZeroOrOne(scl.Ok), terminator)
 }
 
 func (scl *SCLogin) Unmarshal(line string, delimiter, terminator rune) error {
@@ -39,7 +39,7 @@ func (scl *SCLogin) Unmarshal(line string, delimiter, terminator rune) error {
 		return ErrInvalidResponse94
 	}
 
-	if string(runes[0:2]) != types.RespSCLogin.ID() {
+	if string(runes[0:2]) != fields.RespSCLogin.ID() {
 		return ErrInvalidResponse94
 	}
 
@@ -73,7 +73,7 @@ func (scl *SCLogin) Unmarshal(line string, delimiter, terminator rune) error {
 func (scl *SCLogin) Validate() error {
 	err := Validate.Struct(scl)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.RespSCLogin.String(), err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", fields.RespSCLogin.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

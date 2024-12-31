@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
@@ -37,7 +37,7 @@ func TestSCLogin(t *testing.T) {
 		t.Fatalf("Sequence Number mismatch")
 	}
 
-	if msgID != types.RespSCLogin.ID() {
+	if msgID != fields.RespSCLogin.ID() {
 		t.Fatalf("Message ID mismatch")
 	}
 

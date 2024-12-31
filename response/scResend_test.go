@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
@@ -28,7 +28,7 @@ func TestSCResend(t *testing.T) {
 
 	respParsed = parsed.(*SCResend)
 
-	if msgID != types.RespSCResend.ID() {
+	if msgID != fields.RespSCResend.ID() {
 		t.Fatalf("Message ID mismatch")
 	}
 

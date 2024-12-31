@@ -8,11 +8,10 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/pescew/sip/fields"
-	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
-var ErrInvalidResponse98 = fmt.Errorf("Invalid SIP %s", types.RespACSStatus.String())
+var ErrInvalidResponse98 = fmt.Errorf("Invalid SIP %s", fields.RespACSStatus.String())
 
 // The ACS must send this message in response to a SC Status message. This message will be the first message sent by the ACS to the SC, since it establishes some of the rules to be followed by the SC and establishes some parameters needed for further communication (exception: the Login Response Message may be sent first to complete login of the SC).
 type ACSStatus struct {
@@ -23,11 +22,11 @@ type ACSStatus struct {
 	RenewalPolicy   bool
 	StatusUpdateOK  bool
 	OfflineOK       bool
-	TimeoutPeriod   int       `validate:"min=0,max=999"`
-	RetriesAllowed  int       `validate:"min=0,max=999"`
-	DateTimeSync    time.Time `validate:"required"`
-	ProtocolVersion string    `validate:"required,sip,len=4,oneof=1.00 2.00"`
-	InstitutionID   string    `validate:"sip"`
+	TimeoutPeriod   int                    `validate:"min=0,max=999"`
+	RetriesAllowed  int                    `validate:"min=0,max=999"`
+	DateTimeSync    time.Time              `validate:"required"`
+	ProtocolVersion fields.ProtocolVersion `validate:"required,sip,len=4,oneof=1.00 2.00"`
+	InstitutionID   string                 `validate:"sip"`
 
 	// Optional:
 	LibraryName string `validate:"sip"`
@@ -46,7 +45,7 @@ type ACSStatus struct {
 func (st *ACSStatus) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
 
-	msg.WriteString(types.RespACSStatus.ID())
+	msg.WriteString(fields.RespACSStatus.ID())
 
 	msg.WriteString(utils.YorN(st.OnlineStatus))
 	msg.WriteString(utils.YorN(st.CheckinOK))
@@ -60,7 +59,7 @@ func (st *ACSStatus) Marshal(delimiter, terminator rune, errorDetection bool) st
 
 	msg.WriteString(st.DateTimeSync.Format(utils.SIPDateFormat))
 
-	msg.WriteString(st.ProtocolVersion)
+	msg.WriteString(st.ProtocolVersion.ID())
 
 	fmt.Fprintf(&msg, "AO%s%c", st.InstitutionID, delimiter)
 
@@ -98,7 +97,7 @@ func (st *ACSStatus) Unmarshal(line string, delimiter, terminator rune) error {
 		return ErrInvalidResponse98
 	}
 
-	if string(runes[0:2]) != types.RespACSStatus.ID() {
+	if string(runes[0:2]) != fields.RespACSStatus.ID() {
 		return ErrInvalidResponse98
 	}
 
@@ -135,7 +134,7 @@ func (st *ACSStatus) Unmarshal(line string, delimiter, terminator rune) error {
 		return err
 	}
 
-	st.ProtocolVersion = string(runes[32:36])
+	st.ProtocolVersion = fields.ProtocolVersion(string(runes[32:36]))
 
 	st.InstitutionID = codes["AO"]
 
@@ -168,7 +167,7 @@ func (st *ACSStatus) Unmarshal(line string, delimiter, terminator rune) error {
 func (st *ACSStatus) Validate() error {
 	err := Validate.Struct(st)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.RespACSStatus.String(), err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", fields.RespACSStatus.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

@@ -8,11 +8,11 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
-var ErrInvalidResponse30 = fmt.Errorf("Invalid SIP %s", types.RespRenew.String())
+var ErrInvalidResponse30 = fmt.Errorf("Invalid SIP %s", fields.RespRenew.String())
 
 // This message must be sent by the ACS in response to a Renew message by the SC.
 type Renew struct {
@@ -29,15 +29,15 @@ type Renew struct {
 	DueDate         string    `validate:"required,sip"`
 
 	// Optional Fields:
-	FeeType         int `validate:"min=0,max=99"`
+	FeeType         fields.FeeType `validate:"min=0,max=99"`
 	SecurityInhibit bool
-	CurrencyType    string `validate:"sip,max=3"`
-	FeeAmount       string `validate:"sip"`
-	MediaType       string `validate:"sip,max=3"`
-	ItemProperties  string `validate:"sip"`
-	TransactionID   string `validate:"sip"`
-	ScreenMessage   string `validate:"sip"`
-	PrintLine       string `validate:"sip"`
+	CurrencyType    string           `validate:"sip,max=3"`
+	FeeAmount       string           `validate:"sip"`
+	MediaType       fields.MediaType `validate:"sip,max=3"`
+	ItemProperties  string           `validate:"sip"`
+	TransactionID   string           `validate:"sip"`
+	ScreenMessage   string           `validate:"sip"`
+	PrintLine       string           `validate:"sip"`
 
 	SeqNum int `validate:"min=0,max=9"`
 }
@@ -45,7 +45,7 @@ type Renew struct {
 func (rn *Renew) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
 
-	msg.WriteString(types.RespRenew.ID())
+	msg.WriteString(fields.RespRenew.ID())
 	msg.WriteString(utils.ZeroOrOne(rn.Ok))
 	msg.WriteString(utils.YorN(rn.RenewalOk))
 	msg.WriteString(utils.YorN(rn.MagneticMedia))
@@ -58,7 +58,7 @@ func (rn *Renew) Marshal(delimiter, terminator rune, errorDetection bool) string
 	fmt.Fprintf(&msg, "AH%s%c", rn.DueDate, delimiter)
 
 	if rn.FeeType > 0 {
-		fmt.Fprintf(&msg, "BT%02d%c", rn.FeeType, delimiter)
+		fmt.Fprintf(&msg, "BT%s%c", rn.FeeType.ID(), delimiter)
 	}
 
 	fmt.Fprintf(&msg, "CI%s%c", utils.YorN(rn.SecurityInhibit), delimiter)
@@ -71,8 +71,8 @@ func (rn *Renew) Marshal(delimiter, terminator rune, errorDetection bool) string
 		fmt.Fprintf(&msg, "BV%s%c", rn.FeeAmount, delimiter)
 	}
 
-	if utf8.RuneCountInString(rn.MediaType) == 3 {
-		fmt.Fprintf(&msg, "CK%s%c", rn.MediaType, delimiter)
+	if utf8.RuneCountInString(rn.MediaType.ID()) == 3 {
+		fmt.Fprintf(&msg, "CK%s%c", rn.MediaType.ID(), delimiter)
 	}
 
 	if rn.ItemProperties != "" {
@@ -107,7 +107,7 @@ func (rn *Renew) Unmarshal(line string, delimiter, terminator rune) error {
 		return ErrInvalidResponse30
 	}
 
-	if string(runes[0:2]) != types.RespRenew.ID() {
+	if string(runes[0:2]) != fields.RespRenew.ID() {
 		return ErrInvalidResponse30
 	}
 
@@ -139,10 +139,11 @@ func (rn *Renew) Unmarshal(line string, delimiter, terminator rune) error {
 	rn.DueDate = codes["AH"]
 
 	if codes["BT"] != "" {
-		rn.FeeType, err = strconv.Atoi(codes["BT"])
+		feeType, err := strconv.Atoi(codes["BT"])
 		if err != nil {
 			return err
 		}
+		rn.FeeType = fields.FeeType(feeType)
 	}
 
 	if codes["CI"] != "" {
@@ -156,7 +157,7 @@ func (rn *Renew) Unmarshal(line string, delimiter, terminator rune) error {
 	rn.FeeAmount = codes["BV"]
 
 	if utf8.RuneCountInString(codes["CK"]) == 3 {
-		rn.MediaType = codes["CK"]
+		rn.MediaType = fields.MediaType(codes["CK"])
 	}
 
 	rn.ItemProperties = codes["CH"]
@@ -174,16 +175,16 @@ func (rn *Renew) Unmarshal(line string, delimiter, terminator rune) error {
 
 func (rn *Renew) Validate() error {
 	if rn.CurrencyType != "" && utf8.RuneCountInString(rn.CurrencyType) != 3 {
-		return fmt.Errorf("invalid SIP %s did not pass validation: CurrencyType must be 3 chars", types.RespRenew.String())
+		return fmt.Errorf("invalid SIP %s did not pass validation: CurrencyType must be 3 chars", fields.RespRenew.String())
 	}
 
-	if rn.MediaType != "" && utf8.RuneCountInString(rn.MediaType) != 3 {
-		return fmt.Errorf("invalid SIP %s did not pass validation: MediaType must be 3 chars", types.RespRenew.String())
+	if rn.MediaType.ID() != "" && utf8.RuneCountInString(rn.MediaType.ID()) != 3 {
+		return fmt.Errorf("invalid SIP %s did not pass validation: MediaType must be 3 chars", fields.RespRenew.String())
 	}
 
 	err := Validate.Struct(rn)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.RespRenew.String(), err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", fields.RespRenew.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

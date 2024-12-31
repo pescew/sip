@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/pescew/sip/fields"
-	"github.com/pescew/sip/types"
 	"github.com/pescew/sip/utils"
 )
 
@@ -37,7 +36,7 @@ func TestPatronInfo(t *testing.T) {
 			RecallOverdue:         true,
 			TooManyBilled:         true,
 		},
-		Language:              1,
+		Language:              fields.LanguageEnglish,
 		TransactionDate:       time.Now().UTC().Truncate(time.Second),
 		HoldItemsCount:        2,
 		OverdueItemsCount:     0,
@@ -86,7 +85,7 @@ func TestPatronInfo(t *testing.T) {
 		t.Fatalf("Sequence Number mismatch")
 	}
 
-	if msgID != types.RespPatronInfo.ID() {
+	if msgID != fields.RespPatronInfo.ID() {
 		t.Fatalf("Message ID mismatch")
 	}
 

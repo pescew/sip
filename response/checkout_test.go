@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
@@ -32,11 +32,11 @@ func TestCheckout(t *testing.T) {
 		DueDate:         "12/31/1969",
 
 		// Optional Fields:
-		FeeType:         12,
+		FeeType:         fields.DamageFee,
 		SecurityInhibit: false,
 		CurrencyType:    "USD",
 		FeeAmount:       "50.00",
-		MediaType:       "005",
+		MediaType:       fields.MediaTypeBook,
 		ItemProperties:  "props",
 		TransactionID:   "12345",
 		ScreenMessage:   "msg",
@@ -58,7 +58,7 @@ func TestCheckout(t *testing.T) {
 		t.Fatalf("Sequence Number mismatch")
 	}
 
-	if msgID != types.RespCheckout.ID() {
+	if msgID != fields.RespCheckout.ID() {
 		t.Fatalf("Message ID mismatch")
 	}
 

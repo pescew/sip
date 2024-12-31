@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
-var ErrInvalidResponse38 = fmt.Errorf("Invalid SIP %s", types.RespFeePaid.String())
+var ErrInvalidResponse38 = fmt.Errorf("Invalid SIP %s", fields.RespFeePaid.String())
 
 // The ACS must send this message in response to the Fee Paid message.
 type FeePaid struct {
@@ -32,7 +32,7 @@ type FeePaid struct {
 func (fp *FeePaid) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
 
-	msg.WriteString(types.RespFeePaid.ID())
+	msg.WriteString(fields.RespFeePaid.ID())
 	msg.WriteString(utils.YorN(fp.PaymentAccepted))
 	msg.WriteString(fp.TransactionDate.Format(utils.SIPDateFormat))
 	fmt.Fprintf(&msg, "AO%s%c", fp.InstitutionID, delimiter)
@@ -66,7 +66,7 @@ func (fp *FeePaid) Unmarshal(line string, delimiter, terminator rune) error {
 		return ErrInvalidResponse38
 	}
 
-	if string(runes[0:2]) != types.RespFeePaid.ID() {
+	if string(runes[0:2]) != fields.RespFeePaid.ID() {
 		return ErrInvalidResponse38
 	}
 
@@ -106,7 +106,7 @@ func (fp *FeePaid) Unmarshal(line string, delimiter, terminator rune) error {
 func (fp *FeePaid) Validate() error {
 	err := Validate.Struct(fp)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.RespFeePaid.String(), err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", fields.RespFeePaid.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

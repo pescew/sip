@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
-var ErrInvalidResponse16 = fmt.Errorf("Invalid SIP %s", types.RespHold.String())
+var ErrInvalidResponse16 = fmt.Errorf("Invalid SIP %s", fields.RespHold.String())
 
 // The ACS should send this message in response to the Hold message from the SC.
 type Hold struct {
@@ -37,7 +37,7 @@ type Hold struct {
 func (h *Hold) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
 
-	msg.WriteString(types.RespHold.ID())
+	msg.WriteString(fields.RespHold.ID())
 
 	msg.WriteString(utils.ZeroOrOne(h.Ok))
 	msg.WriteString(utils.YorN(h.Available))
@@ -95,7 +95,7 @@ func (h *Hold) Unmarshal(line string, delimiter, terminator rune) error {
 		return ErrInvalidResponse16
 	}
 
-	if string(runes[0:2]) != types.RespHold.ID() {
+	if string(runes[0:2]) != fields.RespHold.ID() {
 		return ErrInvalidResponse16
 	}
 
@@ -159,7 +159,7 @@ func (h *Hold) Unmarshal(line string, delimiter, terminator rune) error {
 func (h *Hold) Validate() error {
 	err := Validate.Struct(h)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.RespHold.String(), err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", fields.RespHold.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

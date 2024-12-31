@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
@@ -46,7 +46,7 @@ func TestFeePaid(t *testing.T) {
 		t.Fatalf("Sequence Number mismatch")
 	}
 
-	if msgID != types.RespFeePaid.ID() {
+	if msgID != fields.RespFeePaid.ID() {
 		t.Fatalf("Message ID mismatch")
 	}
 

@@ -8,11 +8,11 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
-var ErrInvalidResponse10 = fmt.Errorf("Invalid SIP %s", types.RespCheckin.String())
+var ErrInvalidResponse10 = fmt.Errorf("Invalid SIP %s", fields.RespCheckin.String())
 
 // This message must be sent by the ACS in response to a SC Checkin message.
 type Checkin struct {
@@ -27,13 +27,13 @@ type Checkin struct {
 	PermanentLocation string    `validate:"required,sip"`
 
 	// Optional Fields:
-	TitleID        string `validate:"sip"`
-	SortBin        string `validate:"sip"`
-	PatronID       string `validate:"sip"`
-	MediaType      string `validate:"sip,max=3"`
-	ItemProperties string `validate:"sip"`
-	ScreenMessage  string `validate:"sip"`
-	PrintLine      string `validate:"sip"`
+	TitleID        string           `validate:"sip"`
+	SortBin        string           `validate:"sip"`
+	PatronID       string           `validate:"sip"`
+	MediaType      fields.MediaType `validate:"sip,max=3"`
+	ItemProperties string           `validate:"sip"`
+	ScreenMessage  string           `validate:"sip"`
+	PrintLine      string           `validate:"sip"`
 
 	SeqNum int `validate:"min=0,max=9"`
 }
@@ -41,7 +41,7 @@ type Checkin struct {
 func (ci *Checkin) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
 
-	msg.WriteString(types.RespCheckin.ID())
+	msg.WriteString(fields.RespCheckin.ID())
 
 	msg.WriteString(utils.ZeroOrOne(ci.Ok))
 	msg.WriteString(utils.YorN(ci.Resensitize))
@@ -64,8 +64,8 @@ func (ci *Checkin) Marshal(delimiter, terminator rune, errorDetection bool) stri
 		fmt.Fprintf(&msg, "AA%s%c", ci.PatronID, delimiter)
 	}
 
-	if utf8.RuneCountInString(ci.MediaType) == 3 {
-		fmt.Fprintf(&msg, "CK%s%c", ci.MediaType, delimiter)
+	if utf8.RuneCountInString(ci.MediaType.ID()) == 3 {
+		fmt.Fprintf(&msg, "CK%s%c", ci.MediaType.ID(), delimiter)
 	}
 
 	if ci.ItemProperties != "" {
@@ -96,7 +96,7 @@ func (ci *Checkin) Unmarshal(line string, delimiter, terminator rune) error {
 		return ErrInvalidResponse10
 	}
 
-	if string(runes[0:2]) != types.RespCheckin.ID() {
+	if string(runes[0:2]) != fields.RespCheckin.ID() {
 		return ErrInvalidResponse10
 	}
 
@@ -129,7 +129,7 @@ func (ci *Checkin) Unmarshal(line string, delimiter, terminator rune) error {
 	ci.PatronID = codes["AA"]
 
 	if utf8.RuneCountInString(codes["CK"]) == 3 {
-		ci.MediaType = codes["CK"]
+		ci.MediaType = fields.MediaType(codes["CK"])
 	}
 
 	ci.ItemProperties = codes["CH"]
@@ -145,13 +145,13 @@ func (ci *Checkin) Unmarshal(line string, delimiter, terminator rune) error {
 }
 
 func (ci *Checkin) Validate() error {
-	if ci.MediaType != "" && utf8.RuneCountInString(ci.MediaType) != 3 {
-		return fmt.Errorf("invalid SIP %s did not pass validation: MediaType must be 3 chars", types.RespCheckin.String())
+	if ci.MediaType.ID() != "" && utf8.RuneCountInString(ci.MediaType.ID()) != 3 {
+		return fmt.Errorf("invalid SIP %s did not pass validation: MediaType must be 3 chars", fields.RespCheckin.String())
 	}
 
 	err := Validate.Struct(ci)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.RespCheckin.String(), err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", fields.RespCheckin.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
-var ErrInvalidResponse36 = fmt.Errorf("Invalid SIP %s", types.RespEndSession.String())
+var ErrInvalidResponse36 = fmt.Errorf("Invalid SIP %s", fields.RespEndSession.String())
 
 // The ACS must send this message in response to the End Patron Session message.
 type EndSession struct {
@@ -31,7 +31,7 @@ type EndSession struct {
 func (es *EndSession) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
 
-	msg.WriteString(types.RespEndSession.ID())
+	msg.WriteString(fields.RespEndSession.ID())
 	msg.WriteString(utils.YorN(es.EndSession))
 	msg.WriteString(es.TransactionDate.Format(utils.SIPDateFormat))
 	fmt.Fprintf(&msg, "AO%s%c", es.InstitutionID, delimiter)
@@ -61,7 +61,7 @@ func (es *EndSession) Unmarshal(line string, delimiter, terminator rune) error {
 		return ErrInvalidResponse36
 	}
 
-	if string(runes[0:2]) != types.RespEndSession.ID() {
+	if string(runes[0:2]) != fields.RespEndSession.ID() {
 		return ErrInvalidResponse36
 	}
 
@@ -100,7 +100,7 @@ func (es *EndSession) Unmarshal(line string, delimiter, terminator rune) error {
 func (es *EndSession) Validate() error {
 	err := Validate.Struct(es)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.RespEndSession.String(), err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", fields.RespEndSession.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

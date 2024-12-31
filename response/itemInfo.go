@@ -8,19 +8,19 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
-var ErrInvalidResponse18 = fmt.Errorf("Invalid SIP %s", types.RespItemInfo.String())
+var ErrInvalidResponse18 = fmt.Errorf("Invalid SIP %s", fields.RespItemInfo.String())
 
 // The ACS must send this message in response to the Item Information message.
 type ItemInfo struct {
 	// Required Fields:
-	CirculationStatus int       `validate:"min=0,max=99"`
-	SecurityMarker    int       `validate:"min=0,max=99"`
-	FeeType           int       `validate:"min=1,max=99"`
-	TransactionDate   time.Time `validate:"required"`
+	CirculationStatus fields.CirculationStatus `validate:"min=0,max=99"`
+	SecurityMarker    fields.SecurityMarker    `validate:"min=0,max=99"`
+	FeeType           fields.FeeType           `validate:"min=1,max=99"`
+	TransactionDate   time.Time                `validate:"required"`
 
 	// Optional Fields:
 	HoldQueueLength int    `validate:"min=-1"`
@@ -33,15 +33,15 @@ type ItemInfo struct {
 	TitleID string `validate:"sip"`
 
 	// Optional Fields:
-	Owner             string `validate:"sip"`
-	CurrencyType      string `validate:"sip,max=3"`
-	FeeAmount         string `validate:"sip"`
-	MediaType         string `validate:"sip,max=3"`
-	PermanentLocation string `validate:"sip"`
-	CurrentLocation   string `validate:"sip"`
-	ItemProperties    string `validate:"sip"`
-	ScreenMessage     string `validate:"sip"`
-	PrintLine         string `validate:"sip"`
+	Owner             string           `validate:"sip"`
+	CurrencyType      string           `validate:"sip,max=3"`
+	FeeAmount         string           `validate:"sip"`
+	MediaType         fields.MediaType `validate:"sip,max=3"`
+	PermanentLocation string           `validate:"sip"`
+	CurrentLocation   string           `validate:"sip"`
+	ItemProperties    string           `validate:"sip"`
+	ScreenMessage     string           `validate:"sip"`
+	PrintLine         string           `validate:"sip"`
 
 	SeqNum int `validate:"min=0,max=9"`
 }
@@ -49,11 +49,11 @@ type ItemInfo struct {
 func (ii *ItemInfo) Marshal(delimiter, terminator rune, errorDetection bool) string {
 	var msg strings.Builder
 
-	msg.WriteString(types.RespItemInfo.ID())
+	msg.WriteString(fields.RespItemInfo.ID())
 
-	fmt.Fprintf(&msg, "%02d", ii.CirculationStatus)
-	fmt.Fprintf(&msg, "%02d", ii.SecurityMarker)
-	fmt.Fprintf(&msg, "%02d", ii.FeeType)
+	msg.WriteString(ii.CirculationStatus.ID())
+	msg.WriteString(ii.SecurityMarker.ID())
+	msg.WriteString(ii.FeeType.ID())
 	msg.WriteString(ii.TransactionDate.Format(utils.SIPDateFormat))
 
 	if ii.HoldQueueLength != -1 {
@@ -87,8 +87,8 @@ func (ii *ItemInfo) Marshal(delimiter, terminator rune, errorDetection bool) str
 		fmt.Fprintf(&msg, "BV%s%c", ii.FeeAmount, delimiter)
 	}
 
-	if utf8.RuneCountInString(ii.MediaType) == 3 {
-		fmt.Fprintf(&msg, "CK%s%c", ii.MediaType, delimiter)
+	if utf8.RuneCountInString(ii.MediaType.ID()) == 3 {
+		fmt.Fprintf(&msg, "CK%s%c", ii.MediaType.ID(), delimiter)
 	}
 
 	if ii.PermanentLocation != "" {
@@ -127,7 +127,7 @@ func (ii *ItemInfo) Unmarshal(line string, delimiter, terminator rune) error {
 		return ErrInvalidResponse18
 	}
 
-	if string(runes[0:2]) != types.RespItemInfo.ID() {
+	if string(runes[0:2]) != fields.RespItemInfo.ID() {
 		return ErrInvalidResponse18
 	}
 
@@ -142,20 +142,23 @@ func (ii *ItemInfo) Unmarshal(line string, delimiter, terminator rune) error {
 		}
 	}
 
-	ii.CirculationStatus, err = strconv.Atoi(string(runes[2:4]))
+	circStatus, err := strconv.Atoi(string(runes[2:4]))
 	if err != nil {
 		return err
 	}
+	ii.CirculationStatus = fields.CirculationStatus(circStatus)
 
-	ii.SecurityMarker, err = strconv.Atoi(string(runes[4:6]))
+	securityMarker, err := strconv.Atoi(string(runes[4:6]))
 	if err != nil {
 		return err
 	}
+	ii.SecurityMarker = fields.SecurityMarker(securityMarker)
 
-	ii.FeeType, err = strconv.Atoi(string(runes[6:8]))
+	feeType, err := strconv.Atoi(string(runes[6:8]))
 	if err != nil {
 		return err
 	}
+	ii.FeeType = fields.FeeType(feeType)
 
 	ii.TransactionDate, err = time.Parse(utils.SIPDateFormat, string(runes[8:26]))
 	if err != nil {
@@ -198,7 +201,7 @@ func (ii *ItemInfo) Unmarshal(line string, delimiter, terminator rune) error {
 	ii.FeeAmount = codes["BV"]
 
 	if utf8.RuneCountInString(codes["CK"]) == 3 {
-		ii.MediaType = codes["CK"]
+		ii.MediaType = fields.MediaType(codes["CK"])
 	}
 
 	ii.PermanentLocation = codes["AQ"]
@@ -217,16 +220,16 @@ func (ii *ItemInfo) Unmarshal(line string, delimiter, terminator rune) error {
 
 func (ii *ItemInfo) Validate() error {
 	if ii.CurrencyType != "" && utf8.RuneCountInString(ii.CurrencyType) != 3 {
-		return fmt.Errorf("invalid SIP %s did not pass validation: CurrencyType must be 3 chars", types.RespItemInfo.String())
+		return fmt.Errorf("invalid SIP %s did not pass validation: CurrencyType must be 3 chars", fields.RespItemInfo.String())
 	}
 
-	if ii.MediaType != "" && utf8.RuneCountInString(ii.MediaType) != 3 {
-		return fmt.Errorf("invalid SIP %s did not pass validation: MediaType must be 3 chars", types.RespItemInfo.String())
+	if ii.MediaType.ID() != "" && utf8.RuneCountInString(ii.MediaType.ID()) != 3 {
+		return fmt.Errorf("invalid SIP %s did not pass validation: MediaType must be 3 chars", fields.RespItemInfo.String())
 	}
 
 	err := Validate.Struct(ii)
 	if err != nil {
-		return fmt.Errorf("invalid SIP %s did not pass validation: %v", types.RespItemInfo.String(), err.(validator.ValidationErrors))
+		return fmt.Errorf("invalid SIP %s did not pass validation: %v", fields.RespItemInfo.String(), err.(validator.ValidationErrors))
 	}
 	return nil
 }

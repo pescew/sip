@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/pescew/sip/types"
+	"github.com/pescew/sip/fields"
 	"github.com/pescew/sip/utils"
 )
 
@@ -33,7 +33,7 @@ func TestCheckin(t *testing.T) {
 		TitleID:        "Item Title",
 		SortBin:        "4",
 		PatronID:       "0987654321",
-		MediaType:      "005",
+		MediaType:      fields.MediaTypeBook,
 		ItemProperties: "props",
 		ScreenMessage:  "msg",
 		PrintLine:      "print",
@@ -54,7 +54,7 @@ func TestCheckin(t *testing.T) {
 		t.Fatalf("Sequence Number mismatch")
 	}
 
-	if msgID != types.RespCheckin.ID() {
+	if msgID != fields.RespCheckin.ID() {
 		t.Fatalf("Message ID mismatch")
 	}
 

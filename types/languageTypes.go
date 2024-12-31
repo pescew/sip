@@ -68,7 +68,7 @@ var languageTypes = [...]string{
 
 func (l LanguageType) ID() string {
 	if int(l) >= len(languageTypes) || int(l) < 0 {
-		return "00"
+		return "000"
 	}
 	return languageIDs[l]
 }

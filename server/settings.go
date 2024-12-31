@@ -25,7 +25,7 @@ func DefaultConfig() Config {
 		TerminalPassword:    "",
 		TerminatorCharacter: '\r',
 		DelimiterCharacter:  '|',
-		ConnectionTimeout:   5,
+		ConnectionTimeout:   30,
 		ErrorDetection:      true,
 	}
 }

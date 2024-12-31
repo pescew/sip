@@ -1,9 +1,9 @@
 package types
 
-type LanguageType int
+type LanguageCode int
 
 const (
-	LanguageUnknown LanguageType = iota
+	LanguageUnknown LanguageCode = iota
 	LanguageEnglish
 	LanguageFrench
 	LanguageGerman
@@ -35,7 +35,7 @@ const (
 
 var languageIDs = [...]string{"000", "001", "002", "003", "004", "005", "006", "007", "008", "009", "010", "011", "012", "013", "014", "015", "016", "017", "018", "019", "020", "021", "022", "023", "024", "025", "026", "027"}
 
-var languageTypes = [...]string{
+var languageCodes = [...]string{
 	"Unknown",
 	"English",
 	"French",
@@ -66,16 +66,16 @@ var languageTypes = [...]string{
 	"Taiwanese",
 }
 
-func (l LanguageType) ID() string {
-	if int(l) >= len(languageTypes) || int(l) < 0 {
+func (l LanguageCode) ID() string {
+	if int(l) >= len(languageIDs) || int(l) < 0 {
 		return languageIDs[0]
 	}
 	return languageIDs[l]
 }
 
-func (l LanguageType) String() string {
-	if int(l) >= len(languageTypes) || int(l) < 0 {
-		return languageTypes[0]
+func (l LanguageCode) String() string {
+	if int(l) >= len(languageCodes) || int(l) < 0 {
+		return languageCodes[0]
 	}
-	return languageTypes[l]
+	return languageCodes[l]
 }

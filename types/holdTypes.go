@@ -10,9 +10,9 @@ const (
 	HoldTypeAnyAtLocation
 )
 
-var HoldIDs = [...]string{"0", "1", "2", "3", "4"}
+var holdIDs = [...]string{"0", "1", "2", "3", "4"}
 
-var HoldTypes = [...]string{
+var holdTypes = [...]string{
 	"",
 	"Other",
 	"Any copy of a title",
@@ -21,15 +21,15 @@ var HoldTypes = [...]string{
 }
 
 func (h HoldType) ID() string {
-	if int(h) >= len(HoldTypes) || int(h) < 1 {
-		return HoldIDs[1]
+	if int(h) >= len(holdIDs) || int(h) < 1 {
+		return holdIDs[1]
 	}
-	return HoldIDs[h]
+	return holdIDs[h]
 }
 
 func (h HoldType) String() string {
-	if int(h) >= len(HoldTypes) || int(h) < 1 {
-		return HoldTypes[1]
+	if int(h) >= len(holdTypes) || int(h) < 1 {
+		return holdTypes[1]
 	}
-	return HoldTypes[h]
+	return holdTypes[h]
 }

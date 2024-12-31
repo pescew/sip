@@ -211,9 +211,15 @@ var msgTypes = [...]string{
 }
 
 func (m MsgType) ID() string {
+	if int(m) >= len(msgIDs) || int(m) < 1 {
+		return msgIDs[0]
+	}
 	return msgIDs[m]
 }
 
 func (m MsgType) String() string {
+	if int(m) >= len(msgTypes) || int(m) < 1 {
+		return msgTypes[0]
+	}
 	return msgTypes[m]
 }

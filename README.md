@@ -63,7 +63,7 @@ func handleSCLogin(conn *net.TCPConn, r *request.SCLogin, s server.Settings) {
 func handleSCStatus(conn *net.TCPConn, r *request.SCStatus, s server.Settings) {
 	resp := response.ACSStatus{
 		OnlineStatus:    true,
-		TimeoutPeriod:   30,
+		TimeoutPeriod:   s.ConnectionTimeout(),
 		RetriesAllowed:  5,
 		DateTimeSync:    time.Now(),
 		ProtocolVersion: fields.ProtocolVersion2,

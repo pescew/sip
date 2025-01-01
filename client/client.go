@@ -34,32 +34,6 @@ type Client struct {
 	seqNum      int
 }
 
-type Config struct {
-	DebugMode                bool
-	LibraryID                string
-	InstitutionID            string
-	TerminalUsername         string
-	TerminalPassword         string
-	TerminatorCharacter      rune
-	DelimiterCharacter       rune
-	ConnectionTimeoutSeconds int
-	ErrorDetection           bool
-}
-
-func DefaultConfig() Config {
-	return Config{
-		DebugMode:                false,
-		LibraryID:                "lib",
-		InstitutionID:            "inst",
-		TerminalUsername:         "",
-		TerminalPassword:         "",
-		TerminatorCharacter:      '\r',
-		DelimiterCharacter:       '|',
-		ConnectionTimeoutSeconds: 5,
-		ErrorDetection:           true,
-	}
-}
-
 func New(cfg Config) (*Client, error) {
 	if cfg.ConnectionTimeoutSeconds < 1 {
 		return nil, fmt.Errorf("invalid connection timeout - must be greater than zero seconds.")

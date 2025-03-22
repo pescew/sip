@@ -20,7 +20,7 @@ type PatronInfo struct {
 	TransactionDate time.Time           `validate:"required"`
 	Summary         fields.Summary      `validate:"required"`
 	InstitutionID   string              `validate:"sip"`
-	PatronID        string              `validate:"required,sip"`
+	PatronID        string              `validate:"sip"`
 
 	// Optional:
 	TerminalPassword string `validate:"sip"`
